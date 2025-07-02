@@ -1,108 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Alemba Ticket Logger</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-   <!-- jQuery from Google CDN -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-  <!-- Bootstrap JS from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <style>
-    body { background: #f8f9fa; }
-    .centered { max-width: 400px; margin: 3rem auto; }
-    .spinner-border { display: none; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticket Submission</title>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"</script>
+  <script src="https://ajax.googleapis.com/ajax3.7.1/jquery.min.js"</script>
 </head>
-<body>
-  <div class="container centered text-center">
-    <h1 class="mb-4">Log Alemba Ticket</h1>
-    <div id="paramDisplay" class="mb-3"></div>
-    <button id="logBtn" class="btn btn-primary btn-lg">Log Ticket</button>
-    <div class="spinner-border text-primary mt-3" role="status" id="loadingSpinner">
-      <span class="visually-hidden">Loading...</span>
+<body class="container py-5">
+  <h1 class="mb-4">Submit a Ticket</h1>
+  <form id="ticketForm">
+    <div class="mb-3">
+      <label for="ReceivingGroup" class="form-label">Receiving Group</label>
+      <input type="number" class="form-control" id="ReceivingGroup" required />
     </div>
-    <div id="resultMsg" class="alert mt-3 d-none"></div>
-  </div>
+    <div class="mb-3">
+      <label for="CustomString1" class="form-label">Custom String</label>
+      <input type="text" class="form-control" id="CustomString1" required />
+    </div>
+    <div class="mb-3">
+      <label for="ConfigurationItemId" class="form-label">Configuration Item ID</label>
+      <input type="number" class="form-control" id="ConfigurationItemId" required />
+    </div>
+    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Ticket</button>
+  </form>
+  <div id="message" class="mt-4"></div>
 
-  <!-- Bootstrap JS -->
-  <script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
-  <!-- jQuery -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
-    // Extract URL parameters
-    function getUrlParams() {
-      const params = {};
-      const searchParams = new URLSearchParams(window.location.search);
-      for (const [key, value] of searchParams.entries()) {
-        params[key] = value;
-      }
-      return params;
-    }
+    let authToken = null;
 
-    // Display parameters to user
-    function displayParams(params) {
-      if (params.ReceivingGroup && params.CustomString1 && params.ConfigurationItemId) {
-        $('#paramDisplay').html(
-          `<div class="alert alert-info">
-            <strong>Parameters Detected:</strong><br>
-            <b>ReceivingGroup:</b> ${params.ReceivingGroup}<br>
-            <b>CustomString1:</b> ${params.CustomString1}<br>
-            <b>ConfigurationItemId:</b> ${params.ConfigurationItemId}
-          </div>`
-        );
-        $('#logBtn').prop('disabled', false);
-      } else {
-        $('#paramDisplay').html(
-          `<div class="alert alert-warning">
-            Missing parameters in URL.<br>
-            Please provide <b>ReceivingGroup</b>, <b>CustomString1</b>, and <b>ConfigurationItemId</b> in the URL.<br>
-            Example:<br>
-            <code>?ReceivingGroup=13&CustomString1=Big%20Board%20ED%20Hub&ConfigurationItemId=5430</code>
-          </div>`
-        );
-        $('#logBtn').prop('disabled', true);
-      }
-    }
+    $(document).ready(function () {
+      // Fetch token on load
+      $.get('/api/get-token', function (data) {
+        authToken = data.token;
+      });
 
-    $(document).ready(function() {
-      const params = getUrlParams();
-      displayParams(params);
-
-      $('#logBtn').click(function() {
-        $('#resultMsg').addClass('d-none').removeClass('alert-success alert-danger');
-        $('#loadingSpinner').show();
-        $('#logBtn').prop('disabled', true);
+      // Handle form submission
+      $('#ticketForm').on('submit', function (e) {
+        e.preventDefault();
+        const ReceivingGroup = $('#ReceivingGroup').val();
+        const CustomString1 = $('#CustomString1').val();
+        const ConfigurationItemId = $('#ConfigurationItemId').val();
 
         $.ajax({
           url: '/api/submit-ticket',
           method: 'POST',
           contentType: 'application/json',
-           JSON.stringify({
-            ReceivingGroup: params.ReceivingGroup,
-            CustomString1: params.CustomString1,
-            ConfigurationItemId: params.ConfigurationItemId
-          }),
-          success: function(data) {
-            $('#loadingSpinner').hide();
-            $('#logBtn').hide();
-            $('#resultMsg')
-              .removeClass('d-none alert-danger')
-              .addClass('alert-success')
-              .html(`Thank you for logging the issue.<br>Ticket <b>${data.ref}</b> has been logged.`);
+          data: JSON.stringify({ ReceivingGroup, CustomString1, ConfigurationItemId }),
+          success: function (response) {
+            $('#message').html(
+              `<div class="alert alert-success">Thank you for logging the issue. Ticket "<strong>${response.ref}</strong>" has been logged.</div>`
+            );
+            $('#submitBtn').hide();
           },
-          error: function(xhr) {
-            $('#loadingSpinner').hide();
-            $('#logBtn').prop('disabled', false);
-            let msg = "Failed to log ticket.";
-            if (xhr.responseJSON && xhr.responseJSON.error) {
-              msg += " " + xhr.responseJSON.error;
-            }
-            $('#resultMsg')
-              .removeClass('d-none alert-success')
-              .addClass('alert-danger')
-              .text(msg);
+          error: function () {
+            $('#message').html(
+              '<div class="alert alert-danger">There was an error submitting the ticket.</div>'
+            );
           }
         });
       });
