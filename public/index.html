@@ -4,7 +4,6 @@
   <meta charset="utf-8"/>
   <title>Submit a Ticket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
     .image-container {
@@ -29,9 +28,7 @@
 </head>
 <body class="bg-light">
   <main class="container py-4">
-    <!-- Information bar for alerts -->
     <div id="info-bar" aria-live="polite"></div>
-    <!-- Centered image with padding -->
     <div class="image-container">
       <img 
         id="ticket-image" 
@@ -40,14 +37,16 @@
         loading="lazy"
       />
     </div>
+    <div class="text-center">
+      <button id="submit-btn" class="btn btn-primary d-none">Submit Ticket</button>
+    </div>
   </main>
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Helper to show alerts in the info bar
+    let accessToken = null;
+
     function showAlert(message, type = "info") {
-      const infoBar = document.getElementById('info-bar');
-      infoBar.innerHTML = `
+      document.getElementById('info-bar').innerHTML = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
           ${message}
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -55,22 +54,46 @@
       `;
     }
 
-    // Extract query parameters from URL
     function getQueryParam(param) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(param);
     }
 
-    // On page load, process the ticket submission
-    window.addEventListener('DOMContentLoaded', async () => {
-      // Get required values from URL
+    // Fetch the authorization token on page load
+    async function fetchAuthToken() {
+      showAlert('Authorizing...', 'info');
+      try {
+        // Replace with your actual API endpoint and request details
+        const response = await fetch('/api/get-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ /* credentials if needed */ })
+        });
+        const result = await response.json();
+        if (response.ok && result.access_token) {
+          accessToken = result.access_token;
+          showAlert('Authorization successful. You may now submit your ticket.', 'success');
+          document.getElementById('submit-btn').classList.remove('d-none');
+        } else {
+          showAlert('Failed to obtain authorization token.', 'danger');
+        }
+      } catch (err) {
+        showAlert('An error occurred while authorizing.', 'danger');
+      }
+    }
+
+    // Submit the ticket when the button is clicked
+    async function submitTicket() {
       const ReceivingGroup = getQueryParam('ReceivingGroup');
       const CustomString1 = getQueryParam('CustomString1');
       const ConfigurationItemId = getQueryParam('ConfigurationItemId');
 
-      // Validate parameters
       if (!ReceivingGroup || !CustomString1 || !ConfigurationItemId) {
         showAlert('Missing required parameters in the URL. Please provide ReceivingGroup, CustomString1, and ConfigurationItemId.', 'danger');
+        return;
+      }
+      if (!accessToken) {
+        showAlert('No authorization token found. Please refresh the page.', 'danger');
         return;
       }
 
@@ -79,7 +102,10 @@
       try {
         const response = await fetch('/api/submit-ticket', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
           body: JSON.stringify({ ReceivingGroup, CustomString1, ConfigurationItemId })
         });
         const result = await response.json();
@@ -95,6 +121,11 @@
       } catch (err) {
         showAlert('An error occurred. Please try again.', 'danger');
       }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchAuthToken();
+      document.getElementById('submit-btn').addEventListener('click', submitTicket);
     });
   </script>
 </body>
