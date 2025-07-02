@@ -119,7 +119,7 @@ app.post('/make-call', (req, res) => {
         hostname: 'fhnhs.alembacloud.com',
         path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         headers: {
-          'Authorization': `Bearer ${access_token}`
+          'Authorization': `Bearer ${process.env.CLIENT_ID}`
         },
         maxRedirects: 20
       };
