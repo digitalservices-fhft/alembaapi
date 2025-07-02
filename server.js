@@ -1,24 +1,35 @@
 const express = require('express');
 const https = require('https');
-const bodyParser = require('body-parser');
 const qs = require('querystring');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Serve static files from the public directory
 app.use(express.static('public'));
-app.use(bodyParser.json());
+app.use(express.json());
 
 let access_token = '';
 
+// GET TOKEN ENDPOINT
 app.get('/get-token', (req, res) => {
+  // Use lowercase keys for OAuth2
+  const postData = qs.stringify({
+    grant_type: 'password',
+    scope: 'session-type:Analyst',
+    client_id: process.env.CLIENT_ID,
+    username: process.env.API_USERNAME,
+    password: process.env.API_PASSWORD
+  });
+
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
     path: '/production/alemba.web/oauth/login',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Bearer ${process.env.CLIENT_ID}`
+      'Content-Length': Buffer.byteLength(postData)
+      // Add Authorization header here only if required by API (e.g., Basic Auth)
     },
     maxRedirects: 20
   };
@@ -31,27 +42,32 @@ app.get('/get-token', (req, res) => {
       const body = Buffer.concat(chunks).toString();
       try {
         const json = JSON.parse(body);
-        access_token = json.access_token;
-        res.json({ access_token });
+        if (json.access_token) {
+          access_token = json.access_token;
+          res.json({ access_token });
+        } else {
+          res.status(500).send('No access_token in response');
+        }
       } catch (e) {
         res.status(500).send('Failed to parse token response');
       }
     });
   });
 
-  const postData = qs.stringify({
-    'Grant_type': 'password',
-    'Scope': 'session-type:Analyst',
-    'Client_id': process.env.CLIENT_ID,
-    'Username': process.env.API_USERNAME,
-    'Password': process.env.API_PASSWORD
+  request.on('error', (e) => {
+    res.status(500).send('Error requesting token: ' + e.message);
   });
 
   request.write(postData);
   request.end();
 });
 
+// MAKE CALL ENDPOINT
 app.post('/make-call', (req, res) => {
+  if (!access_token) {
+    return res.status(401).send('No access token. Please authenticate first.');
+  }
+
   const callPayload = {
     "Description": "Logged Via Chris & Jon's Magic Api",
     "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
@@ -67,13 +83,14 @@ app.post('/make-call', (req, res) => {
     "User": 34419
   };
 
+  // Remove double slashes in path, add Bearer to Authorization
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
-    path: `/production//alemba.api/api/v2/call?Login_Token=${access_token}`,
+    path: `/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': access_token
+      'Authorization': `Bearer ${access_token}`
     },
     maxRedirects: 20
   };
@@ -100,9 +117,9 @@ app.post('/make-call', (req, res) => {
       const submitOptions = {
         method: 'POST',
         hostname: 'fhnhs.alembacloud.com',
-        path: `/production//alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
+        path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         headers: {
-          'Authorization': access_token
+          'Authorization': `Bearer ${access_token}`
         },
         maxRedirects: 20
       };
