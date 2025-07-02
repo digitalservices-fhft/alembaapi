@@ -1,4 +1,3 @@
-
 let accessToken = '';
 
 $(document).ready(function () {
@@ -33,7 +32,16 @@ $(document).ready(function () {
       contentType: 'application/json',
       data: JSON.stringify(payload),
       success: function (response) {
-        $('#responseOutput').text(response);
+        if (response.callRef) {
+          $('#callApiBtn').hide();
+          $('#responseOutput').html(
+            '<div class="alert alert-success" role="alert">' +
+            'Thank you for logging - Your reference number is <strong>' + response.callRef + '</strong>.' +
+            '</div>'
+          );
+        } else {
+          $('#responseOutput').text('Call submitted but no reference number returned.');
+        }
       },
       error: function (xhr) {
         $('#responseOutput').text('Error: ' + xhr.responseText);
