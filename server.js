@@ -21,9 +21,9 @@ app.get('/api/get-token', (req, res) => {
   const postData = qs.stringify({
     'Grant_type': 'password',
     'Scope': 'session-type:Analyst',
-    'Client_id': 'bf730773-ded9-4423-a4cb-f752095e82c6',
-    'Username': 'DS_ADMIN',
-    'Password': 'YellowFrog82'
+    'Client_id': 'process.env.CLIENT_ID',
+    'Username': 'process.env.USERNAME',
+    'Password': 'process.env.PASSWORD'
   });
 
   const options = {
