@@ -1,136 +1,120 @@
 // server.js
 require('dotenv').config();
 const express = require('express');
-const helmet = require('helmet');
+const https = require('https');
 const cors = require('cors');
-const fetch = require('node-fetch');
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        // You can adjust scriptSrc and styleSrc as needed for your frontend,
-        // but the backend does NOT need to allow CDNs for Bootstrap/jQuery.
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"]
-      }
-    }
-  })
-);
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Validate environment variables
-['USERNAME', 'PASSWORD', 'CLIENT_ID'].forEach((key) => {
-  if (!process.env[key]) {
-    console.error(`Missing environment variable: ${key}`);
-    process.exit(1);
-  }
-});
+let authToken = null;
 
-// Token cache
-let tokenCache = {
-  token: null,
-  expiresAt: 0
-};
+// Endpoint to get the auth token
+app.get('/api/get-token', (req, res) => {
+  const qs = require('querystring');
 
-// Helper: Get OAuth token (refresh if expired)
-async function getAuthToken() {
-  const now = Date.now();
-  if (tokenCache.token && tokenCache.expiresAt > now + 60000) {
-    return tokenCache.token;
-  }
-  const url = 'https://fhnhs.alembacloud.com/production/alemba.web/oauth/login';
-  const params = new URLSearchParams({
-    Grant_type: 'password',
-    Scope: 'session-type:Analyst',
-    Client_id: process.env.CLIENT_ID,
-    Username: process.env.USERNAME,
-    Password: process.env.PASSWORD
+  const postData = qs.stringify({
+    'Grant_type': 'password',
+    'Scope': 'session-type:Analyst',
+    'Client_id': 'bf730773-ded9-4423-a4cb-f752095e82c6',
+    'Username': 'DS_ADMIN',
+    'Password': 'YellowFrog82'
   });
 
-  const res = await fetch(url, {
-    method: 'POST',
+  const options = {
+    method: 'GET',
+    hostname: 'fhnhs.alembacloud.com',
+    path: '/production/alemba.web/oauth/login',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Bearer bf730773-ded9-4423-a4cb-f752095e82c6',
     },
-    body: params
-  });
+    maxRedirects: 20
+  };
 
-  if (!res.ok) {
-    throw new Error('Failed to get auth token');
-  }
-  const data = await res.json();
-  // Assume data.access_token and data.expires_in are present
-  tokenCache.token = data.access_token;
-  tokenCache.expiresAt = Date.now() + ((data.expires_in || 600) * 1000);
-  return tokenCache.token;
-}
+  const request = https.request(options, function (response) {
+    let chunks = [];
 
-// API endpoint: Submit ticket
-app.post('/api/submit-ticket', async (req, res) => {
-  try {
-    const { ReceivingGroup, CustomString1, ConfigurationItemId } = req.body;
-    // Validate required params
-    if (
-      !ReceivingGroup ||
-      !CustomString1 ||
-      !ConfigurationItemId
-    ) {
-      return res.status(400).json({ error: 'Missing required parameters.' });
-    }
-
-    const token = await getAuthToken();
-
-    // Compose the ticket payload as per Alemba API cookbook
-    const ticketPayload = {
-      Description: "Logged Via Chris & Jon's Magic Api",
-      DescriptionHtml: "<p>Logged Via Chris & Jon's Magic Api</p>",
-      IpkStatus: 1,
-      IpkStream: 0,
-      Location: 23427,
-      Impact: 1,
-      Urgency: 4,
-      ReceivingGroup: parseInt(ReceivingGroup),
-      Type: 149,
-      CustomString1: CustomString1,
-      ConfigurationItemId: parseInt(ConfigurationItemId),
-      User: 34419
-    };
-
-    // Submit the ticket
-    const apiUrl = 'https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call';
-    const apiRes = await fetch(`${apiUrl}?Login_Token=${token}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(ticketPayload)
+    response.on("data", function (chunk) {
+      chunks.push(chunk);
     });
 
-    const apiData = await apiRes.json();
+    response.on("end", function () {
+      const body = Buffer.concat(chunks).toString();
+      authToken = body;
+      res.send({ token: body });
+    });
 
-    if (!apiRes.ok || !apiData.Ref) {
-      return res.status(500).json({ error: 'Failed to log ticket', details: apiData });
-    }
+    response.on("error", function (error) {
+      console.error(error);
+      res.status(500).send("Error retrieving token");
+    });
+  });
 
-    res.json({ ref: apiData.Ref });
-  } catch (error) {
-    console.error('Error submitting ticket:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  request.write(postData);
+  request.end();
 });
 
-// Health check
-app.get('/health', (req, res) => res.send('OK'));
+// Endpoint to submit a ticket
+app.post('/api/submit-ticket', (req, res) => {
+  const { ReceivingGroup, CustomString1, ConfigurationItemId } = req.body;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  const postData = JSON.stringify({
+    "Description": "Logged Via Chris & Jon's Magic Api",
+    "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
+    "IpkStatus": 1,
+    "IpkStream": 0,
+    "Location": 23427,
+    "Impact": 1,
+    "Urgency": 4,
+    "ReceivingGroup": ReceivingGroup,
+    "Type": 149,
+    "CustomString1": CustomString1,
+    "ConfigurationItemId": ConfigurationItemId,
+    "User": 34419
+  });
+
+  const options = {
+    method: 'POST',
+    hostname: 'fhnhs.alembacloud.com',
+    path: '/production/alemba.api/api/v2/call?Login_Token=YzBmNDkxZTUtODJiMS00M2RiLWFmMWYtZTMyYTRiMzUxZTJl',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ZmY5NTE4MDgtMTk2Yy00YmIzLTlhOTYtOGU1OTIwMTBiYTk3',
+      'Cookie': 'ASP.NET_SessionId=bcfyzi5obvwi2tjufqwe4zdw'
+    },
+    maxRedirects: 20
+  };
+
+  const request = https.request(options, function (response) {
+    let chunks = [];
+
+    response.on("data", function (chunk) {
+      chunks.push(chunk);
+    });
+
+    response.on("end", function () {
+      const body = Buffer.concat(chunks).toString();
+      try {
+        const json = JSON.parse(body);
+        res.send({ ref: json.Ref });
+      } catch (e) {
+        res.status(500).send("Error parsing response");
+      }
+    });
+
+    response.on("error", function (error) {
+      console.error(error);
+      res.status(500).send("Error submitting ticket");
+    });
+  });
+
+  request.write(postData);
+  request.end();
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
