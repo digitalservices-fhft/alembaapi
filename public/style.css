@@ -1,0 +1,15 @@
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8f9fa;
+  padding-top: 50px;
+}
+
+#responseOutput {
+  white-space: pre-wrap;
+  background: #fff;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  margin-top: 1rem;
+}
