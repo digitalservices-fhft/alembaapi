@@ -82,7 +82,7 @@ app.post('/api/submit-ticket', (req, res) => {
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
-    path: '/production/alemba.api/api/v2/call?Login_Token=YzBmNDkxZTUtODJiMS00M2RiLWFmMWYtZTMyYTRiMzUxZTJl',
+    path: '/production/alemba.api/api/v2/call?Login_Token=${authToken}',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`,
