@@ -18,7 +18,7 @@ app.get('/get-token', (req, res) => {
     path: '/production/alemba.web/oauth/login',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Bearer ' process.env.CLIENT_ID
+      'Authorization': `Bearer ${process.env.CLIENT_ID}`
     },
     maxRedirects: 20
   };
