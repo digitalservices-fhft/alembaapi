@@ -1,60 +1,56 @@
-const express = require('express');
-const https = require('follow-redirects').https;
+const https = require('https');
 const qs = require('querystring');
-const path = require('path');
-require('dotenv').config();
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/token', (req, res) => {
-    const options = {
-        method: 'GET',
-        hostname: 'fhnhs.alembacloud.com',
-        path: '/production/alemba.web/oauth/login',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': process.env.AUTHORIZATION_HEADER
-        },
-        maxRedirects: 20
-    };
+  const postData = qs.stringify({
+    grant_type: 'password',
+    scope: 'session-type:Analyst',
+    client_id: process.env.CLIENT_ID,
+    username: process.env.USERNAME,
+    password: process.env.PASSWORD
+  });
 
-    const apiReq = https.request(options, function (apiRes) {
-        let chunks = [];
+  const options = {
+    method: 'POST',
+    hostname: 'fhnhs.alembacloud.com',
+    path: '/production/alemba.web/oauth/login',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData),
+      'Authorization': process.env.AUTHORIZATION_HEADER
+    },
+    maxRedirects: 20
+  };
 
-        apiRes.on("data", function (chunk) {
-            chunks.push(chunk);
-        });
+  const apiReq = https.request(options, function (apiRes) {
+    let chunks = [];
 
-        apiRes.on("end", function () {
-            const body = Buffer.concat(chunks).toString();
-            try {
-                const json = JSON.parse(body);
-                res.json({ access_token: json.access_token });
-            } catch (e) {
-                res.status(500).send("Failed to parse response");
-            }
-        });
-
-        apiRes.on("error", function (error) {
-            res.status(500).send("API request error: " + error.message);
-        });
+    apiRes.on("data", function (chunk) {
+      chunks.push(chunk);
     });
 
-    const postData = qs.stringify({
-        'Grant_type': 'password',
-        'Scope': 'session-type:Analyst',
-        'Client_id': process.env.CLIENT_ID,
-        'Username': process.env.USERNAME,
-        'Password': process.env.PASSWORD
+    apiRes.on("end", function () {
+      const body = Buffer.concat(chunks).toString();
+      console.log("API Response:", body);
+
+      try {
+        const json = JSON.parse(body);
+        if (json.access_token) {
+          res.json({ access_token: json.access_token });
+        } else {
+          res.status(500).json({ error: "No access_token in response", raw: json });
+        }
+      } catch (e) {
+        res.status(500).json({ error: "Failed to parse response", raw: body });
+      }
     });
+  });
 
-    apiReq.write(postData);
-    apiReq.end();
-});
+  apiReq.on("error", function (error) {
+    console.error("API Request Error:", error);
+    res.status(500).json({ error: "API request failed", details: error.message });
+  });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  apiReq.write(postData);
+  apiReq.end();
 });
