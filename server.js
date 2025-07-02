@@ -21,9 +21,9 @@ app.get('/api/get-token', (req, res) => {
   const postData = qs.stringify({
     'Grant_type': 'password',
     'Scope': 'session-type:Analyst',
-    'Client_id': 'process.env.CLIENT_ID',
-    'Username': 'process.env.USERNAME',
-    'Password': 'process.env.PASSWORD'
+    'Client_id': process.env.CLIENT_ID,
+    'Username': process.env.USERNAME,
+    'Password': process.env.PASSWORD
   });
 
   const options = {
@@ -32,7 +32,7 @@ app.get('/api/get-token', (req, res) => {
     path: '/production/alemba.web/oauth/login',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Bearer bf730773-ded9-4423-a4cb-f752095e82c6',
+      'Authorization': `Bearer ${authToken}`,
     },
     maxRedirects: 20
   };
@@ -85,7 +85,7 @@ app.post('/api/submit-ticket', (req, res) => {
     path: '/production/alemba.api/api/v2/call?Login_Token=YzBmNDkxZTUtODJiMS00M2RiLWFmMWYtZTMyYTRiMzUxZTJl',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ZmY5NTE4MDgtMTk2Yy00YmIzLTlhOTYtOGU1OTIwMTBiYTk3',
+      'Authorization': `Bearer ${authToken}`,
       'Cookie': 'ASP.NET_SessionId=bcfyzi5obvwi2tjufqwe4zdw'
     },
     maxRedirects: 20

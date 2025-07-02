@@ -1,4 +1,9 @@
 $(document).ready(function () {
+let accessToken = null;
+$.get("/api/get-token", function(data) {
+    accessToken = data.token;
+});
+
   // Helper function to get URL parameters
   function getParam(name) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -33,7 +38,8 @@ $(document).ready(function () {
       User: 34419
     };
 
-    $.ajax({
+    $.ajaxSetup({ headers: { 'Authorization': 'Bearer ' + accessToken } });
+        $.ajax({
       url: "/api/submit-ticket",
       method: "POST",
       contentType: "application/json",
