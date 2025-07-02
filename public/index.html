@@ -5,7 +5,7 @@
 <title>Submit a Ticket</title>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap/5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 <style>
     .image-container {
       display: flex;
@@ -37,39 +37,7 @@
 </div>
 </div>
 <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-document.addEventListener("DOMContentLoaded", function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const receivingGroup = urlParams.get("ReceivingGroup");
-    const customString1 = urlParams.get("CustomString1");
-    const configurationItemId = urlParams.get("ConfigurationItemId");
-
-    const alertArea = document.getElementById("alert-area");
-    const submitButton = document.getElementById("submit-button");
-
-    if (receivingGroup && customString1 && configurationItemId) {
-        const successAlert = document.createElement("div");
-        successAlert.className = "alert alert-success";
-        successAlert.textContent = "Token successfully retrieved.";
-        alertArea.appendChild(successAlert);
-
-        submitButton.addEventListener("click", function () {
-            // Simulate API call
-            submitButton.style.display = "none";
-            const apiAlert = document.createElement("div");
-            apiAlert.className = "alert alert-info";
-            apiAlert.textContent = "API called with stored parameters.";
-            alertArea.appendChild(apiAlert);
-        });
-    } else {
-        const errorAlert = document.createElement("div");
-        errorAlert.className = "alert alert-danger";
-        errorAlert.textContent = "Error: Missing token parameters in URL.";
-        alertArea.appendChild(errorAlert);
-        submitButton.style.display = "none";
-    }
-});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // Helper to show alerts in the info bar
     function showAlert(message, type = "info") {
@@ -123,6 +91,23 @@ document.addEventListener("DOMContentLoaded", function () {
         showAlert('An error occurred. Please try again.', 'danger');
       }
     });
-  </script>
+  
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Server error: ' + response.status);
+    }
+    return response.json();
+})
+.catch(error => {
+    const alertArea = document.getElementById('alert-area');
+    if (alertArea) {
+        alertArea.innerHTML = '<div class="alert alert-danger" role="alert">' + error.message + '</div>';
+    }
+    const submitButton = document.getElementById('submitButton');
+    if (submitButton) {
+        submitButton.style.display = 'none';
+    }
+});
+</script>
 </body>
 </html>
