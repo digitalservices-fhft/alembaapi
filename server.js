@@ -1,7 +1,14 @@
+// Import required modules
+const express = require('express');
 const https = require('https');
 const qs = require('querystring');
 
+// Create Express app
+const app = express();
+
+// Route to get OAuth token
 app.get('/api/token', (req, res) => {
+  // Prepare POST data (OAuth2 standard field names, all lowercase)
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -10,6 +17,7 @@ app.get('/api/token', (req, res) => {
     password: process.env.PASSWORD
   });
 
+  // HTTPS request options
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
@@ -22,6 +30,7 @@ app.get('/api/token', (req, res) => {
     maxRedirects: 20
   };
 
+  // Make the HTTPS request
   const apiReq = https.request(options, function (apiRes) {
     let chunks = [];
 
@@ -46,11 +55,19 @@ app.get('/api/token', (req, res) => {
     });
   });
 
+  // Handle request errors
   apiReq.on("error", function (error) {
     console.error("API Request Error:", error);
     res.status(500).json({ error: "API request failed", details: error.message });
   });
 
+  // Write POST data and end request
   apiReq.write(postData);
   apiReq.end();
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
