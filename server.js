@@ -1,4 +1,3 @@
-
 // server.js
 require('dotenv').config();
 const express = require('express');
@@ -15,16 +14,14 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://ajax.googleapis.com",   // Allow Google CDN for Bootstrap & jQuery
-          "'unsafe-inline'"                // (Optional) Allow inline scripts if needed
-        ],
-        styleSrc: [
-          "'self'",
-          "https://cdn.jsdelivr.net",      // Allow Bootstrap CSS from jsdelivr
-          "'unsafe-inline'"                // Allow inline styles (Bootstrap needs this)
-        ]
+        // You can adjust scriptSrc and styleSrc as needed for your frontend,
+        // but the backend does NOT need to allow CDNs for Bootstrap/jQuery.
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"]
+      }
+    }
+  })
+);
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
