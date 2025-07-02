@@ -1,5 +1,5 @@
 {
-  "name": "API Alemba App",
+  "name": "APIAlembaApp",
   "version": "1.0.0",
   "description": "BigBoard Node.js app for Render",
   "main": "server.js",
