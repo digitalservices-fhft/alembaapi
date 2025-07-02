@@ -9,6 +9,18 @@ $(document).ready(function () {
     $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
   });
 
+function getQueryParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
+$(document).ready(function() {
+  const boardTitle = getQueryParam('title');
+  if (boardTitle) {
+    $('h1.mb-4').text(boardTitle);
+  }
+});
+
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
     const payload = {

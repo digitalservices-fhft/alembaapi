@@ -68,6 +68,11 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
 
+  // Get parameters from query string, with defaults
+  const receivingGroup = req.query.ReceivingGroup || 13;
+  const customString1 = req.query.CustomString1 || "Big Board ED Hub - Frimley";
+  const configurationItemId = req.query.ConfigurationItemId || 5430;
+
   const callPayload = {
     "Description": "Logged Via Chris & Jon's Magic Api",
     "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
@@ -76,10 +81,10 @@ app.post('/make-call', (req, res) => {
     "Location": 23427,
     "Impact": 1,
     "Urgency": 4,
-    "ReceivingGroup": 13,
+    "ReceivingGroup": parseInt(receivingGroup, 10),
     "Type": 149,
-    "CustomString1": "Big Board ED Hub - Frimley",
-    "ConfigurationItemId": 5430,
+    "CustomString1": customString1,
+    "ConfigurationItemId": parseInt(configurationItemId, 10),
     "User": 34419
   };
 
