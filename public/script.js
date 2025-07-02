@@ -1,6 +1,17 @@
 let accessToken = '';
 
+function getQueryParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
 $(document).ready(function () {
+  // Set board title from URL parameter
+  const boardTitle = getQueryParam('title');
+  if (boardTitle) {
+    $('h1.mb-4').text(boardTitle);
+  }
+
   // Get token on page load
   $.get('/get-token', function (data) {
     accessToken = data.access_token;
@@ -9,20 +20,14 @@ $(document).ready(function () {
     $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
   });
 
-function getQueryParam(name) {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get(name);
-}
-
-$(document).ready(function() {
-  const boardTitle = getQueryParam('title');
-  if (boardTitle) {
-    $('h1.mb-4').text(boardTitle);
-  }
-});
-
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
+    // Get parameters from URL or use defaults
+    const receivingGroup = getQueryParam('ReceivingGroup') || 13;
+    const customString1 = getQueryParam('CustomString1') || "Big Board ED Hub - Frimley";
+    const configurationItemId = getQueryParam('ConfigurationItemId') || 5430;
+
+    // Optionally, update payload with these values
     const payload = {
       "Description": "Logged Via Chris & Jon's Magic Api",
       "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
@@ -31,18 +36,25 @@ $(document).ready(function() {
       "Location": 23427,
       "Impact": 1,
       "Urgency": 4,
-      "ReceivingGroup": 13,
+      "ReceivingGroup": parseInt(receivingGroup, 10),
       "Type": 149,
-      "CustomString1": "Big Board ED Hub - Frimley",
-      "ConfigurationItemId": 5430,
+      "CustomString1": customString1,
+      "ConfigurationItemId": parseInt(configurationItemId, 10),
       "User": 34419
     };
 
+    // Build query string for AJAX URL
+    const queryParams = $.param({
+      ReceivingGroup: receivingGroup,
+      CustomString1: customString1,
+      ConfigurationItemId: configurationItemId
+    });
+
     $.ajax({
-      url: '/make-call',
+      url: '/make-call?' + queryParams,
       method: 'POST',
       contentType: 'application/json',
-      data: JSON.stringify(payload),
+       JSON.stringify(payload),
       success: function (response) {
         if (response.callRef) {
           $('#callApiBtn').hide();
