@@ -1,10 +1,17 @@
 # alembaapi
 Log Tickets in Alemba using a Render hosted Node.js app
 
-**Performace Improvements**
-The URL-based approach delivers significant improvements over the previous form-based method
+alemba-ticket-logger/
+│
+├── public/
+│   └── index.html
+│
+├── .env.example
+├── .gitignore
+├── package.json
+├── server.js
+└── README.md
 
-The implementation reduces user interaction while maintaining all security and functionality requirements.
 
 # User Experience Flow
 **Page Load**
