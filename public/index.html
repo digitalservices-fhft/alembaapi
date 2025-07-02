@@ -75,7 +75,7 @@
           url: '/api/submit-ticket',
           method: 'POST',
           contentType: 'application/json',
-           JSON.stringify({
+          data: JSON.stringify({
             ReceivingGroup: params.ReceivingGroup,
             CustomString1: params.CustomString1,
             ConfigurationItemId: params.ConfigurationItemId
