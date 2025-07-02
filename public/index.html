@@ -4,63 +4,95 @@
   <meta charset="UTF-8">
   <title>Submit a Ticket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 32px 0;
+    }
+    #ticket-image {
+      padding: 24px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    #info-bar {
+      margin-bottom: 1.5rem;
+    }
+  </style>
 </head>
 <body class="bg-light">
 
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card shadow-sm">
-          <div class="card-body">
-              <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png">
-            <h2 id="pageTitle" class="card-title mb-4 text-center">Submit a Ticket</h2>
-            <form id="ticketForm">
-              <!-- Add any form fields you need here -->
-              <button type="button" id="submitBtn" class="btn btn-primary w-100">Submit Ticket</button>
-            </form>
-            <div id="message" class="mt-3"></div>
-          </div>
-        </div>
-      </div>
+  <div class="container py-4">
+    <!-- Information bar for alerts -->
+    <div id="info-bar"></div>
+
+    <!-- Centered image with padding -->
+    <div class="image-container">
+      <img id="ticket-image" src="img/FHFT_DS_Text_Logo_Trans_300x48.png" alt="Ticket" />
     </div>
   </div>
 
-  <!-- Bootstrap Modal -->
-  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="feedbackModalLabel">Ticket Status</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" id="modalMessage">
-          <!-- Success or error message will appear here -->
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- jQuery and Bootstrap JS CDN -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/script.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Show modal with message after submission
-    $(document).ready(function () {
-      // Listen for AJAX success/error in script.js and show modal
-      // Example: Replace this with your actual logic
-      $('#submitBtn').on('click', function () {
-        setTimeout(function () {
-          $('#modalMessage').text($('#message').text());
-          var feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
-          feedbackModal.show();
-        }, 500); // Adjust delay as needed
-      });
+    // Helper to show alerts in the info bar
+    function showAlert(message, type = "info") {
+      const infoBar = document.getElementById('info-bar');
+      infoBar.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      `;
+    }
+
+    // Extract query parameters from URL
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    // On page load, process the ticket submission
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Get required values from URL
+      const ReceivingGroup = getQueryParam('ReceivingGroup');
+      const CustomString1 = getQueryParam('CustomString1');
+      const ConfigurationItemId = getQueryParam('ConfigurationItemId');
+
+      // Validate parameters
+      if (!ReceivingGroup || !CustomString1 || !ConfigurationItemId) {
+        showAlert('Missing required parameters in the URL. Please provide ReceivingGroup, CustomString1, and ConfigurationItemId.', 'danger');
+        return;
+      }
+
+      showAlert('Submitting your ticket...', 'info');
+
+      try {
+        const response = await fetch('/api/submit-ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ReceivingGroup, CustomString1, ConfigurationItemId })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.ref) {
+          showAlert(
+            `Thanks for logging the ticket, your reference number is <strong>${result.ref}</strong>.`,
+            'success'
+          );
+        } else {
+          showAlert('There was a problem submitting your ticket. Please try again.', 'danger');
+        }
+      } catch (err) {
+        showAlert('An error occurred. Please try again.', 'danger');
+      }
     });
   </script>
 </body>
