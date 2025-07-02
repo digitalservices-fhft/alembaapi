@@ -1,23 +1,22 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Submit a Ticket</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-<style>
+  <meta charset="utf-8"/>
+  <title>Submit a Ticket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
     .image-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 32px 0;
+      padding: 2rem 0;
     }
     #ticket-image {
-      padding: 24px;
+      padding: 1.5rem;
       background: #fff;
-      border-radius: 12px;
+      border-radius: .75rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       max-width: 100%;
       height: auto;
@@ -29,17 +28,22 @@
   </style>
 </head>
 <body class="bg-light">
-<div class="container py-4">
-<!-- Information bar for alerts -->
-<div id="info-bar"></div>
-<!-- Centered image with padding -->
-<div class="image-container">
-<img alt="Ticket" id="ticket-image" src="img/FHFT_DS_Text_Logo_Trans_300x48.png"/>
-</div>
-</div>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+  <main class="container py-4">
+    <!-- Information bar for alerts -->
+    <div id="info-bar" aria-live="polite"></div>
+    <!-- Centered image with padding -->
+    <div class="image-container">
+      <img 
+        id="ticket-image" 
+        src="img/FHFT_DS_Text_Logo_Trans_300x48.png" 
+        alt="Organization Ticket Logo" 
+        loading="lazy"
+      />
+    </div>
+  </main>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
     // Helper to show alerts in the info bar
     function showAlert(message, type = "info") {
       const infoBar = document.getElementById('info-bar');
