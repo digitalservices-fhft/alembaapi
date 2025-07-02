@@ -1,5 +1,4 @@
 
-
 // server.js
 require('dotenv').config();
 const express = require('express');
@@ -25,7 +24,7 @@ app.use(
           "'self'",
           "https://cdn.jsdelivr.net",      // Allow Bootstrap CSS from jsdelivr
           "'unsafe-inline'"                // Allow inline styles (Bootstrap needs this)
-        ],
+        ]
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
