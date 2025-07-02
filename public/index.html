@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Access Token Fetcher</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Frimley Big Board</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <!-- Custom Styles -->
+ 
+<link rel="stylesheet" href="style.css">
+
 </head>
 <body>
-  <h1>Access Token</h1>
-  <pre id="token">Loading...</pre>
+  <div class="container text-center">
+    <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png">
+    <h1 class="mb-4">Frimley Big Board</h1>
+    <button id="callApiBtn" class="btn btn-primary" style="display: none;">Make API Call</button>
+    <div id="responseOutput" class="text-start mt-4"></div>
+  </div>
 
-  <script>
-    window.onload = function() {
-      fetch('/api/token')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('token').textContent = data.access_token || 'No token received';
-        })
-        .catch(error => {
-          document.getElementById('token').textContent = 'Error: ' + error;
-        });
-    };
-  </script>
+  <!-- jQuery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- App Logic -->
+  
+  
+<script src="script.js"></script>
+
+
 </body>
 </html>
