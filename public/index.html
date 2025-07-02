@@ -2,97 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Submit a Ticket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Alemba Ticket Logger</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
-    .image-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 32px 0;
-    }
-    #ticket-image {
-      padding: 24px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-    #info-bar {
-      margin-bottom: 1.5rem;
-    }
+    body { background: #f8f9fa; }
+    .centered { max-width: 400px; margin: 3rem auto; }
+    .spinner-border { display: none; }
   </style>
 </head>
-<body class="bg-light">
-
-  <div class="container py-4">
-    <!-- Information bar for alerts -->
-    <div id="info-bar"></div>
-
-    <!-- Centered image with padding -->
-    <div class="image-container">
-      <img id="ticket-image" src="img/FHFT_DS_Text_Logo_Trans_300x48.png" alt="Ticket" />
+<body>
+  <div class="container centered text-center">
+    <h1 class="mb-4">Log Alemba Ticket</h1>
+    <div id="paramDisplay" class="mb-3"></div>
+    <button id="logBtn" class="btn btn-primary btn-lg">Log Ticket</button>
+    <div class="spinner-border text-primary mt-3" role="status" id="loadingSpinner">
+      <span class="visually-hidden">Loading...</span>
     </div>
+    <div id="resultMsg" class="alert mt-3 d-none"></div>
   </div>
 
   <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
-    // Helper to show alerts in the info bar
-    function showAlert(message, type = "info") {
-      const infoBar = document.getElementById('info-bar');
-      infoBar.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      `;
-    }
-
-    // Extract query parameters from URL
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
-
-    // On page load, process the ticket submission
-    window.addEventListener('DOMContentLoaded', async () => {
-      // Get required values from URL
-      const ReceivingGroup = getQueryParam('ReceivingGroup');
-      const CustomString1 = getQueryParam('CustomString1');
-      const ConfigurationItemId = getQueryParam('ConfigurationItemId');
-
-      // Validate parameters
-      if (!ReceivingGroup || !CustomString1 || !ConfigurationItemId) {
-        showAlert('Missing required parameters in the URL. Please provide ReceivingGroup, CustomString1, and ConfigurationItemId.', 'danger');
-        return;
+    // Extract URL parameters
+    function getUrlParams() {
+      const params = {};
+      const searchParams = new URLSearchParams(window.location.search);
+      for (const [key, value] of searchParams.entries()) {
+        params[key] = value;
       }
+      return params;
+    }
 
-      showAlert('Submitting your ticket...', 'info');
+    // Display parameters to user
+    function displayParams(params) {
+      if (params.ReceivingGroup && params.CustomString1 && params.ConfigurationItemId) {
+        $('#paramDisplay').html(
+          `<div class="alert alert-info">
+            <strong>Parameters Detected:</strong><br>
+            <b>ReceivingGroup:</b> ${params.ReceivingGroup}<br>
+            <b>CustomString1:</b> ${params.CustomString1}<br>
+            <b>ConfigurationItemId:</b> ${params.ConfigurationItemId}
+          </div>`
+        );
+        $('#logBtn').prop('disabled', false);
+      } else {
+        $('#paramDisplay').html(
+          `<div class="alert alert-warning">
+            Missing parameters in URL.<br>
+            Please provide <b>ReceivingGroup</b>, <b>CustomString1</b>, and <b>ConfigurationItemId</b> in the URL.<br>
+            Example:<br>
+            <code>?ReceivingGroup=13&CustomString1=Big%20Board%20ED%20Hub&ConfigurationItemId=5430</code>
+          </div>`
+        );
+        $('#logBtn').prop('disabled', true);
+      }
+    }
 
-      try {
-        const response = await fetch('/api/submit-ticket', {
+    $(document).ready(function() {
+      const params = getUrlParams();
+      displayParams(params);
+
+      $('#logBtn').click(function() {
+        $('#resultMsg').addClass('d-none').removeClass('alert-success alert-danger');
+        $('#loadingSpinner').show();
+        $('#logBtn').prop('disabled', true);
+
+        $.ajax({
+          url: '/api/submit-ticket',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ReceivingGroup, CustomString1, ConfigurationItemId })
+          contentType: 'application/json',
+           JSON.stringify({
+            ReceivingGroup: params.ReceivingGroup,
+            CustomString1: params.CustomString1,
+            ConfigurationItemId: params.ConfigurationItemId
+          }),
+          success: function(data) {
+            $('#loadingSpinner').hide();
+            $('#logBtn').hide();
+            $('#resultMsg')
+              .removeClass('d-none alert-danger')
+              .addClass('alert-success')
+              .html(`Thank you for logging the issue.<br>Ticket <b>${data.ref}</b> has been logged.`);
+          },
+          error: function(xhr) {
+            $('#loadingSpinner').hide();
+            $('#logBtn').prop('disabled', false);
+            let msg = "Failed to log ticket.";
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+              msg += " " + xhr.responseJSON.error;
+            }
+            $('#resultMsg')
+              .removeClass('d-none alert-success')
+              .addClass('alert-danger')
+              .text(msg);
+          }
         });
-        const result = await response.json();
-
-        if (response.ok && result.ref) {
-          showAlert(
-            `Thanks for logging the ticket, your reference number is <strong>${result.ref}</strong>.`,
-            'success'
-          );
-        } else {
-          showAlert('There was a problem submitting your ticket. Please try again.', 'danger');
-        }
-      } catch (err) {
-        showAlert('An error occurred. Please try again.', 'danger');
-      }
+      });
     });
   </script>
 </body>
