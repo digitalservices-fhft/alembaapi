@@ -67,27 +67,27 @@ app.post('/make-call', (req, res) => {
   if (!access_token) {
     return res.status(401).send('No access token. Please authenticate first.');
   }
-
-  // Get parameters from query string, with defaults
-  const receivingGroup = req.query.ReceivingGroup || 13;
-  const customString1 = req.query.CustomString1 || "Big Board ED Hub - Frimley";
-  const configurationItemId = req.query.ConfigurationItemId || 5430;
+  // Prefer body, fallback to query
+  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
+  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
+  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
+  const type = req.body.type || req.query.type || 143;
+  const description = req.body.description || req.query.description || "Ticket logged via API";
 
   const callPayload = {
-    "Description": "Logged Via Chris & Jon's Magic Api",
-    "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
+    "Description": description,
+    "DescriptionHtml": `<p>${description}</p>`,
     "IpkStatus": 1,
     "IpkStream": 0,
     "Location": 23427,
     "Impact": 1,
     "Urgency": 4,
     "ReceivingGroup": parseInt(receivingGroup, 10),
-    "Type": 149,
+    "Type": parseInt(type, 10),
     "CustomString1": customString1,
     "ConfigurationItemId": parseInt(configurationItemId, 10),
     "User": 34419
   };
-
   // Remove double slashes in path, add Bearer to Authorization
   const options = {
     method: 'POST',

@@ -18,23 +18,25 @@ $(document).ready(function () {
     $('h1.mb-4').text(boardTitle);
   }
 
-  // Get required parameters from URL
-  const receivingGroup = getQueryParam('receivingGroup');
-  const customString1 = getQueryParam('customString1');
-  const configurationItemId = getQueryParam('configurationItemId');
+  // Get required parameters from URL with defaults
+  const receivingGroup = getQueryParam('receivingGroup') || 13;
+  const customString1 = getQueryParam('customString1') || "Big Board ED Hub - Frimley";
+  const configurationItemId = getQueryParam('configurationItemId') || 5430;
+  const type = getQueryParam('type') || 143;
+  const description = getQueryParam('description') || "Ticket logged via API";
 
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
     const payload = {
-      "Description": "Logged Via Chris & Jon's Magic Api",
-      "DescriptionHtml": "<p>Logged Via Chris & Jon's Magic Api</p>",
+      "Description": description,
+      "DescriptionHtml": `<p>${description}</p>`,
       "IpkStatus": 1,
       "IpkStream": 0,
       "Location": 23427,
       "Impact": 1,
       "Urgency": 4,
       "ReceivingGroup": parseInt(receivingGroup, 10),
-      "Type": 149,
+      "Type": parseInt(type, 10),
       "CustomString1": customString1,
       "ConfigurationItemId": parseInt(configurationItemId, 10),
       "User": 34419
@@ -44,7 +46,7 @@ $(document).ready(function () {
       url: '/make-call',
       method: 'POST',
       contentType: 'application/json',
-      data: JSON.stringify(payload),
+       JSON.stringify(payload),
       success: function (response) {
         if (response.callRef) {
           $('#callApiBtn').hide();
