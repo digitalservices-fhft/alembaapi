@@ -69,11 +69,11 @@ app.post('/make-call', (req, res) => {
   }
 
   // Prefer body, fallback to query
-  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
-  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
-  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
-  const type = req.body.type || req.query.type || 143;
-  const description = req.body.description || req.query.description || "Ticket logged via API";
+  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup;
+  const customString1 = req.body.customString1 || req.query.customString1;
+  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId;
+  const type = req.body.type || req.query.type;
+  const description = req.body.description || req.query.description;
 
   const callPayload = {
     "Description": description,
@@ -121,7 +121,7 @@ app.post('/make-call', (req, res) => {
 
       // Step 2: Submit the call using the Ref
       const submitOptions = {
-        method: 'POST',
+        method: 'PUT',
         hostname: 'fhnhs.alembacloud.com',
         path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         headers: {

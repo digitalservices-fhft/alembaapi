@@ -14,11 +14,11 @@ $(document).ready(function () {
   }
 
   // Get parameters for payload
-  const receivingGroup = getParam('receivingGroup', 13);
-  const customString1 = getParam('customString1', "Big Board ED Hub - Frimley");
-  const configurationItemId = getParam('configurationItemId', 5430);
-  const type = getParam('type', 143);
-  const description = getParam('description', "Ticket logged via API");
+  const receivingGroup = getParam('receivingGroup');
+  const customString1 = getParam('customString1');
+  const configurationItemId = getParam('configurationItemId');
+  const type = getParam('type');
+  const description = getParam('description');
 
   // Get token on page load
   let accessToken = '';
