@@ -17,7 +17,6 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const description = getParam('description');
   const title = getParam('title');
 
   // Get token on page load
@@ -38,8 +37,8 @@ $(document).ready(function () {
     }
 
     const payload = {
-      "Description": description,
-      "DescriptionHtml": `<p>${description}</p>`,
+      "Description": "Logged via the QR Code, calling the API. Check the location and asset for all the details",
+      "DescriptionHtml": "<p>Logged via the QR Code, calling the API. Check the location and asset for all the details</p>",
       "IpkStatus": 1,
       "IpkStream": 0,
       "Location": 23427,
