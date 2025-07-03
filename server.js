@@ -83,10 +83,11 @@ app.post('/make-call', (req, res) => {
   const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
   const type = req.body.type || req.query.type || 143;
   const title = req.body.title || req.query.title || "Log a ticket";
+  const title = req.body.description || req.query.description || "QR Code parameters not correct";
 
   const callPayload = {
-    "Description": detail,
-    "DescriptionHtml": `<p>${title}</p>`,
+    "Description": description,
+    "DescriptionHtml": `<p>${description}</p>`,
     "IpkStatus": 1,
     "IpkStream": 0,
     "Location": 23427,
