@@ -18,15 +18,20 @@ $(document).ready(function () {
     $('h1.mb-4').text(boardTitle);
   }
 
-  // Get required parameters from URL
-const receivingGroup = getQueryParam('receivingGroup');
-const customString1 = getQueryParam('customString1');
-const configurationItemId = getQueryParam('configurationItemId');
-const type = getQueryParam('type');
-const description = getQueryParam('description');
+  // Get required parameters from URL with defaults
+  const receivingGroup = getQueryParam('receivingGroup') || 13;
+  const customString1 = getQueryParam('customString1') || "Big Board ED Hub - Frimley";
+  const configurationItemId = getQueryParam('configurationItemId') || 5430;
+  const type = getQueryParam('type') || 143;
+  const description = getQueryParam('description') || "Ticket logged via API";
 
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
+  // Validate required parameters
+  if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
+    $('#responseOutput').text('Missing required parameters in URL. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
+    return;
+  }
     const payload = {
       "Description": description,
       "DescriptionHtml": `<p>${description}</p>`,
