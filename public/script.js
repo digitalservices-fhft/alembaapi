@@ -17,7 +17,7 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const detail = getParam('detail');
+  const description = getParam('description');
   const title = getParam('title');
 
   // Get token on page load
@@ -32,14 +32,14 @@ $(document).ready(function () {
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
     // Optional: Validate parameters
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !detail) {
-      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and detail.');
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description || !title) {
+      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
       return;
     }
 
     const payload = {
-      "Description": title,
-      "DescriptionHtml": `<p>${title}</p>`,
+      "Description": description,
+      "DescriptionHtml": `<p>${description}</p>`,
       "IpkStatus": 1,
       "IpkStream": 0,
       "Location": 23427,
@@ -52,7 +52,8 @@ $(document).ready(function () {
       "User": 34419
     };
 
-    $.ajax({
+    console.log('Submitting payload:', payload);
+        $.ajax({
       url: '/make-call',
       method: 'POST',
       contentType: 'application/json',

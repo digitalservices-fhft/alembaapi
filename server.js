@@ -47,6 +47,7 @@ app.get('/get-token', (req, res) => {
           res.status(500).send('No access_token in response');
         }
       } catch (e) {
+        console.error('Token parsing error:', e);
         res.status(500).send('Failed to parse token response');
       }
     });
@@ -81,10 +82,10 @@ app.post('/make-call', (req, res) => {
   const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
   const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
   const type = req.body.type || req.query.type || 143;
-  const title = req.body.type || req.query.type || "Log a ticket";
+  const title = req.body.title || req.query.title || "Log a ticket";
 
   const callPayload = {
-    "Description": title,
+    "Description": detail,
     "DescriptionHtml": `<p>${title}</p>`,
     "IpkStatus": 1,
     "IpkStream": 0,
@@ -119,7 +120,9 @@ app.post('/make-call', (req, res) => {
       try {
         const json = JSON.parse(body);
         ref = json.Ref;
+        console.log(`[${new Date().toISOString()}] Call created with Ref: ${ref}`);
       } catch (e) {
+        console.error('Call creation parsing error:', e);
         return res.status(500).send('Failed to parse call creation response');
       }
 
