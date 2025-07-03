@@ -40,6 +40,7 @@ app.get('/get-token', (req, res) => {
     response.on('data', (chunk) => chunks.push(chunk));
     response.on('end', () => {
       const body = Buffer.concat(chunks).toString();
+console.log('Create call response body:', body);
       try {
         const json = JSON.parse(body);
         if (json.access_token) {
@@ -68,12 +69,13 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
   // Prefer body, fallback to query
-  const receivingGroup = req.body.receivingGroup;
-  const customString1 = req.body.customString1 || req.query.customString1;
-  const configurationItemId = req.body.configurationItemId;
-  const type = req.body.type;
-  const description = req.body.description;
-
+    // Prefer body, fallback to query
+  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
+  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
+  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
+  const type = req.body.type || req.query.type || 143;
+  const description = req.body.description || req.query.description || "Ticket logged via API";
+  
   const callPayload = {
     "Description": description,
     "DescriptionHtml": `<p>${description}</p>`,
@@ -88,6 +90,7 @@ app.post('/make-call', (req, res) => {
     "ConfigurationItemId": parseInt(configurationItemId, 10),
     "User": 34419
   };
+
   // Remove double slashes in path, add Bearer to Authorization
   const options = {
     method: 'POST',
@@ -106,6 +109,7 @@ app.post('/make-call', (req, res) => {
     callRes.on('data', (chunk) => chunks.push(chunk));
     callRes.on('end', () => {
       const body = Buffer.concat(chunks).toString();
+console.log('Create call response body:', body);
       let ref;
       try {
         const json = JSON.parse(body);
@@ -115,10 +119,10 @@ app.post('/make-call', (req, res) => {
       }
 
       if (!ref) {
-        return res.status(500).send('Call created but no Ref returned');
+return res.status(500).send('Call created but no Ref returned. Response: ' + body);
       }
 
-      // Step 2: Submit the call using the Ref
+// Step 2: Submit the call using the Ref
       const submitOptions = {
         method: 'POST',
         hostname: 'fhnhs.alembacloud.com',
@@ -150,6 +154,19 @@ app.post('/make-call', (req, res) => {
       submitReq.end();
     });
   });
+
+  callReq.on('error', (e) => {
+    res.status(500).send('Error creating call: ' + e.message);
+  });
+
+  callReq.write(JSON.stringify(callPayload));
+  callReq.end();
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 
   callReq.on('error', (e) => {
     res.status(500).send('Error creating call: ' + e.message);
