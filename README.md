@@ -4,10 +4,12 @@
 
 | Parameter Name  | Type | Purpose |
 | ------------- | ------------- |------------- |
-| ReceivingGroup | Integer  |Specifies the group that will receive the ticket. |
-| CustomString1  | String | A custom string field used in the ticket payload.|
-| ConfigurationItemId  | Integer | Identifies the configuration item related to the ticket.|
+| receivingGroup | Integer  |Specifies the group that will receive the ticket. |
+| customString1  | String | A custom string field used in the ticket payload.|
+| configurationItemId  | Integer | Identifies the configuration item related to the ticket.|
+| description  | String | Adds the call description to both the Description and DescriptionHTML.|
 | Title  | String | Optional title to dynamically update the page heading.|
 
-			
-https://YOURURL.COM?ReceivingGroup=12345&CustomString1=UrgentIssue&ConfigurationItemId=67890&Title=Printer%20Support%20Request
+**Example URL**
+
+(https://qrcodeapp-wbey.onrender.com/?title=Big%20%20Board%20Wexham%20ED&receivingGroup=11&customString1=Big%20Board%20ED%20Hub%20Wexham&configurationItemId=5678&type=393&description=information%20goes%20here)
