@@ -1,5 +1,3 @@
-let accessToken = '';
-
 $(document).ready(function () {
   // Get token on page load
   $.get('/get-token', function (data) {
@@ -9,17 +7,21 @@ $(document).ready(function () {
     $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
   });
 
-function getQueryParam(name) {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get(name);
-}
+  function getQueryParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
 
-$(document).ready(function() {
+  // Set heading if title param exists
   const boardTitle = getQueryParam('title');
   if (boardTitle) {
     $('h1.mb-4').text(boardTitle);
   }
-});
+
+  // Get required parameters from URL
+  const receivingGroup = getQueryParam('receivingGroup');
+  const customString1 = getQueryParam('customString1');
+  const configurationItemId = getQueryParam('configurationItemId');
 
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
@@ -42,7 +44,7 @@ $(document).ready(function() {
       url: '/make-call',
       method: 'POST',
       contentType: 'application/json',
-      data: JSON.stringify(payload),
+       JSON.stringify(payload),
       success: function (response) {
         if (response.callRef) {
           $('#callApiBtn').hide();
