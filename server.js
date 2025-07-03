@@ -67,11 +67,11 @@ app.post('/make-call', (req, res) => {
   }
 
   // Extract other parameters with fallback defaults
-  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
-  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
-  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
-  const type = req.body.type || req.query.type || 143;
-  const description = req.body.description || req.query.description || "Logged by API app";
+  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup;
+  const customString1 = req.body.customString1 || req.query.customString1;
+  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId;
+  const type = req.body.type || req.query.type;
+  const description = req.body.description || req.query.description;
 
   const callPayload = {
     "Description": description,
