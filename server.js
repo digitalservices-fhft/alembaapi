@@ -47,7 +47,6 @@ app.get('/get-token', (req, res) => {
           res.status(500).send('No access_token in response');
         }
       } catch (e) {
-        console.error('Token parsing error:', e);
         res.status(500).send('Failed to parse token response');
       }
     });
@@ -67,23 +66,12 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
 
-  const detail =
-    req.body.detail && req.body.detail.trim() !== ''
-      ? req.body.detail.trim()
-      : req.query.detail && req.query.detail.trim() !== ''
-      ? req.query.detail.trim()
-      : null;
-
-  if (!detail) {
-    return res.status(400).send('Detail is required and cannot be empty.');
-  }
   // Extract other parameters with fallback defaults
   const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
   const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
   const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
   const type = req.body.type || req.query.type || 143;
-  const title = req.body.title || req.query.title || "Log a ticket";
-  const title = req.body.description || req.query.description || "Log a ticket";
+  const description = req.body.description || req.query.description || "Logged by API app";
 
   const callPayload = {
     "Description": description,
@@ -121,9 +109,7 @@ app.post('/make-call', (req, res) => {
       try {
         const json = JSON.parse(body);
         ref = json.Ref;
-        console.log(`[${new Date().toISOString()}] Call created with Ref: ${ref}`);
       } catch (e) {
-        console.error('Call creation parsing error:', e);
         return res.status(500).send('Failed to parse call creation response');
       }
 
