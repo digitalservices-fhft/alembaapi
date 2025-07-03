@@ -17,7 +17,7 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const title = getParam('title');
+  const description = getParam('description'); // <-- NEW
 
   // Get token on page load
   let accessToken = '';
@@ -30,29 +30,23 @@ $(document).ready(function () {
 
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
-    // Optional: Validate parameters
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !title) {
-      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, and type.');
+    // Validate parameters
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
+      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
       return;
     }
 
     const payload = {
-      "Description": "Logged via the QR Code, calling the API. Check the location and asset for all the details",
-      "DescriptionHtml": "<p>Logged via the QR Code, calling the API. Check the location and asset for all the details</p>",
-      "IpkStatus": 1,
-      "IpkStream": 0,
-      "Location": 23427,
-      "Impact": 1,
-      "Urgency": 4,
-      "ReceivingGroup": parseInt(receivingGroup, 10),
-      "Type": parseInt(type, 10),
-      "CustomString1": customString1,
-      "ConfigurationItemId": parseInt(configurationItemId, 10),
-      "User": 34419
+      receivingGroup,
+      customString1,
+      configurationItemId,
+      type,
+      description // <-- Pass to server
     };
 
     console.log('Submitting payload:', payload);
-        $.ajax({
+
+    $.ajax({
       url: '/make-call',
       method: 'POST',
       contentType: 'application/json',
@@ -61,16 +55,20 @@ $(document).ready(function () {
         if (response.callRef) {
           $('#callApiBtn').hide();
           $('#responseOutput').html(
-            '<div class="alert alert-success" role="alert">' +
-            'Thank you for logging - Your reference number is <strong>' + response.callRef + '</strong>.' +
-            '</div>'
+            '<div class="alert alert-success">Call created and submitted successfully. Reference: <b>' +
+              response.callRef +
+              '</b></div>'
           );
         } else {
-          $('#responseOutput').text('Call submitted but no reference number returned.');
+          $('#responseOutput').text('API call succeeded but no call reference returned.');
         }
       },
       error: function (xhr) {
-        $('#responseOutput').text('Error: ' + xhr.responseText);
+        let errorMsg = 'API call failed.';
+        if (xhr.responseText) {
+          errorMsg += ' ' + xhr.responseText;
+        }
+        $('#responseOutput').text(errorMsg);
       }
     });
   });
