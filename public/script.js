@@ -38,7 +38,7 @@ $(document).ready(function () {
 
     const payload = {
       "Description": '${detail}',
-      "DescriptionHtml": '<p>${detail}</p>`,
+      "DescriptionHtml": `<p>${detail}</p>`,
       "IpkStatus": 1,
       "IpkStream": 0,
       "Location": 23427,
