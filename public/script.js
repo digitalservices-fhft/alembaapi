@@ -18,6 +18,7 @@ $(document).ready(function () {
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
   const detail = getParam('detail');
+  const title = getParam('title');
 
   // Get token on page load
   let accessToken = '';

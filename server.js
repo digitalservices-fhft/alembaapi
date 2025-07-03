@@ -81,6 +81,7 @@ app.post('/make-call', (req, res) => {
   const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
   const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
   const type = req.body.type || req.query.type || 143;
+  const title = req.body.type || req.query.type || "Log a ticket";
 
   const callPayload = {
     "Description": title,
