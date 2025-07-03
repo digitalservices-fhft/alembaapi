@@ -1,3 +1,68 @@
+const express = require('express');
+const https = require('https');
+const qs = require('querystring');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve static files from the public directory
+app.use(express.static('public'));
+app.use(express.json());
+
+let access_token = '';
+
+// GET TOKEN ENDPOINT
+app.get('/get-token', (req, res) => {
+  // Use lowercase keys for OAuth2
+  const postData = qs.stringify({
+    grant_type: 'password',
+    scope: 'session-type:Analyst',
+    client_id: process.env.CLIENT_ID,
+    username: process.env.API_USERNAME,
+    password: process.env.API_PASSWORD
+  });
+
+  const options = {
+    method: 'POST',
+    hostname: 'fhnhs.alembacloud.com',
+    path: '/production/alemba.web/oauth/login',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData)
+      // Add Authorization header here only if required by API (e.g., Basic Auth)
+    },
+    maxRedirects: 20
+  };
+
+  const request = https.request(options, (response) => {
+    let chunks = [];
+
+    response.on('data', (chunk) => chunks.push(chunk));
+    response.on('end', () => {
+      const body = Buffer.concat(chunks).toString();
+      try {
+        const json = JSON.parse(body);
+        if (json.access_token) {
+          access_token = json.access_token;
+          res.json({ access_token });
+        } else {
+          res.status(500).send('No access_token in response');
+        }
+      } catch (e) {
+        res.status(500).send('Failed to parse token response');
+      }
+    });
+  });
+
+  request.on('error', (e) => {
+    res.status(500).send('Error requesting token: ' + e.message);
+  });
+
+  request.write(postData);
+  request.end();
+});
+
+// MAKE CALL ENDPOINT
 app.post('/make-call', (req, res) => {
   if (!access_token) {
     return res.status(401).send('No access token. Please authenticate first.');
@@ -38,6 +103,7 @@ app.post('/make-call', (req, res) => {
 
   const callReq = https.request(options, (callRes) => {
     let chunks = [];
+
     callRes.on('data', (chunk) => chunks.push(chunk));
     callRes.on('end', () => {
       const body = Buffer.concat(chunks).toString();
@@ -48,11 +114,12 @@ app.post('/make-call', (req, res) => {
       } catch (e) {
         return res.status(500).send('Failed to parse call creation response');
       }
+
       if (!ref) {
         return res.status(500).send('Call created but no Ref returned. Response: ' + body);
       }
 
-      // Submit the call using the Ref
+      // Step 2: Submit the call using the Ref
       const submitOptions = {
         method: 'POST',
         hostname: 'fhnhs.alembacloud.com',
@@ -65,6 +132,7 @@ app.post('/make-call', (req, res) => {
 
       const submitReq = https.request(submitOptions, (submitRes) => {
         let submitChunks = [];
+
         submitRes.on('data', (chunk) => submitChunks.push(chunk));
         submitRes.on('end', () => {
           const submitBody = Buffer.concat(submitChunks).toString();
@@ -90,4 +158,8 @@ app.post('/make-call', (req, res) => {
 
   callReq.write(JSON.stringify(callPayload));
   callReq.end();
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
