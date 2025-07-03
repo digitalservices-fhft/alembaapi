@@ -1,12 +1,10 @@
 $(document).ready(function () {
   // Use URLSearchParams best practice
-  $(document).ready(function () {
   const params = new URLSearchParams(window.location.search);
 
   function getParam(param, defaultValue) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
-
 
   // Set heading if title param exists
   const boardTitle = getParam('title', null);
@@ -33,8 +31,8 @@ $(document).ready(function () {
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
     // Optional: Validate parameters
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
-      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !detail) {
+      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and detail.');
       return;
     }
 
