@@ -68,11 +68,11 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
   // Prefer body, fallback to query
-  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
-  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
-  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
-  const type = req.body.type || req.query.type || 143;
-  const description = req.body.description || req.query.description || "Ticket logged via API";
+  const receivingGroup = req.body.receivingGroup;
+  const customString1 = req.body.customString1 || req.query.customString1;
+  const configurationItemId = req.body.configurationItemId;
+  const type = req.body.type;
+  const description = req.body.description;
 
   const callPayload = {
     "Description": description,
