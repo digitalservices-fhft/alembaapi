@@ -13,7 +13,6 @@ let access_token = '';
 
 // GET TOKEN ENDPOINT
 app.get('/get-token', (req, res) => {
-  // Use lowercase keys for OAuth2
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -29,7 +28,6 @@ app.get('/get-token', (req, res) => {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(postData)
-      // Add Authorization header here only if required by API (e.g., Basic Auth)
     },
     maxRedirects: 20
   };
@@ -68,12 +66,23 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
 
-  // Prefer body, fallback to query
-  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup;
-  const customString1 = req.body.customString1 || req.query.customString1;
-  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId;
-  const type = req.body.type || req.query.type;
-  const description = req.body.description || req.query.description;
+  // Extract and validate Description, ensure non-empty string
+  const description =
+    req.body.description && req.body.description.trim() !== ''
+      ? req.body.description.trim()
+      : req.query.description && req.query.description.trim() !== ''
+      ? req.query.description.trim()
+      : null;
+
+  if (!description) {
+    return res.status(400).send('Description is required and cannot be empty.');
+  }
+
+  // Extract other parameters with fallback defaults
+  const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
+  const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
+  const configurationItemId = req.body.configurationItemId || req.query.configurationItemId || 5430;
+  const type = req.body.type || req.query.type || 143;
 
   const callPayload = {
     "Description": description,
@@ -121,7 +130,7 @@ app.post('/make-call', (req, res) => {
 
       // Step 2: Submit the call using the Ref
       const submitOptions = {
-        method: 'PUT',
+        method: 'POST',
         hostname: 'fhnhs.alembacloud.com',
         path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         headers: {
