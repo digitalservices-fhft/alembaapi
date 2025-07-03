@@ -66,12 +66,21 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
 
+const description =
+  req.body.description && req.body.description.trim() !== ''
+    ? req.body.description.trim()
+    : req.query.description && req.query.description.trim() !== ''
+    ? req.query.description.trim()
+    : null;
+
+if (!description) {
+    return res.status(400).send('Description is required and cannot be empty.');
+  }
   // Extract other parameters with fallback defaults
   const receivingGroup = req.body.receivingGroup || req.query.receivingGroup;
   const customString1 = req.body.customString1 || req.query.customString1;
   const configurationItemId = req.body.configurationItemId || req.query.configurationItemId;
   const type = req.body.type || req.query.type;
-  const description = req.body.description || req.query.description;
 
   const callPayload = {
     "Description": description,
