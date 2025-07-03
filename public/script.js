@@ -19,11 +19,11 @@ $(document).ready(function () {
   }
 
   // Get required parameters from URL with defaults
-  const receivingGroup = getQueryParam('receivingGroup') || 13;
-  const customString1 = getQueryParam('customString1') || "Big Board ED Hub - Frimley";
-  const configurationItemId = getQueryParam('configurationItemId') || 5430;
-  const type = getQueryParam('type') || 143;
-  const description = getQueryParam('description') || "Ticket logged via API";
+const receivingGroup = getQueryParam('receivingGroup') || 13;
+const customString1 = getQueryParam('customString1') || "Big Board ED Hub - Frimley";
+const configurationItemId = getQueryParam('configurationItemId') || 5430;
+const type = getQueryParam('type') || 143;
+const description = getQueryParam('description') || "Ticket logged via API";
 
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
