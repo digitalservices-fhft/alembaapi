@@ -1,11 +1,12 @@
 $(document).ready(function () {
   // Use URLSearchParams best practice
+  $(document).ready(function () {
   const params = new URLSearchParams(window.location.search);
 
-  // Helper: Get value from URL or default
   function getParam(param, defaultValue) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
+
 
   // Set heading if title param exists
   const boardTitle = getParam('title', null);
@@ -18,7 +19,7 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const description = getParam('description');
+  const detail = getParam('detail');
 
   // Get token on page load
   let accessToken = '';
@@ -38,8 +39,8 @@ $(document).ready(function () {
     }
 
     const payload = {
-      "Description": description,
-      "DescriptionHtml": `<p>${description}</p>`,
+      "Description": detail,
+      "DescriptionHtml": `<p>${detail}</p>`,
       "IpkStatus": 1,
       "IpkStream": 0,
       "Location": 23427,

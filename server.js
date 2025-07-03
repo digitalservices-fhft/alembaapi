@@ -66,18 +66,16 @@ app.post('/make-call', (req, res) => {
     return res.status(401).send('No access token. Please authenticate first.');
   }
 
-  // Extract and validate Description, ensure non-empty string
-  const description =
-    req.body.description && req.body.description.trim() !== ''
-      ? req.body.description.trim()
-      : req.query.description && req.query.description.trim() !== ''
-      ? req.query.description.trim()
+  const detail =
+    req.body.detail && req.body.detail.trim() !== ''
+      ? req.body.detail.trim()
+      : req.query.detail && req.query.detail.trim() !== ''
+      ? req.query.detail.trim()
       : null;
 
-  if (!description) {
-    return res.status(400).send('Description is required and cannot be empty.');
+  if (!detail) {
+    return res.status(400).send('Detail is required and cannot be empty.');
   }
-
   // Extract other parameters with fallback defaults
   const receivingGroup = req.body.receivingGroup || req.query.receivingGroup || 13;
   const customString1 = req.body.customString1 || req.query.customString1 || "Big Board ED Hub - Frimley";
@@ -85,8 +83,8 @@ app.post('/make-call', (req, res) => {
   const type = req.body.type || req.query.type || 143;
 
   const callPayload = {
-    "Description": description,
-    "DescriptionHtml": `<p>${description}</p>`,
+    "Description": detail,
+    "DescriptionHtml": `<p>${detail}</p>`,
     "IpkStatus": 1,
     "IpkStream": 0,
     "Location": 23427,
@@ -130,7 +128,7 @@ app.post('/make-call', (req, res) => {
 
       // Step 2: Submit the call using the Ref
       const submitOptions = {
-        method: 'POST',
+        method: 'PUT',
         hostname: 'fhnhs.alembacloud.com',
         path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         headers: {
