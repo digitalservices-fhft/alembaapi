@@ -31,8 +31,8 @@ $(document).ready(function () {
   // Trigger API call on button click
   $('#callApiBtn').click(function () {
     // Optional: Validate parameters
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description || !title) {
-      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !title) {
+      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, and type.');
       return;
     }
 
