@@ -1,13 +1,17 @@
-$(document).ready(function () {
-  // Use URLSearchParams best practice
+// public/script.js
+$(function () {
+  // Show loading indicator immediately
+  $('#responseOutput').text('Loading authentication token...');
+
+  // Use URLSearchParams for robust query string parsing
   const params = new URLSearchParams(window.location.search);
 
-  function getParam(param, defaultValue) {
+  function getParam(param, defaultValue = null) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
 
   // Set heading if title param exists
-  const boardTitle = getParam('title', null);
+  const boardTitle = getParam('title');
   if (boardTitle) {
     $('h1.mb-4').text(boardTitle);
   }
@@ -17,15 +21,26 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const description = getParam('description'); // <-- NEW
+  const description = getParam('description');
 
-  // Get token on page load
   let accessToken = '';
-  $.get('/get-token', function (data) {
-    accessToken = data.access_token;
-    $('#callApiBtn').show();
-  }).fail(function (xhr) {
-    $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
+
+  // Hide the call button until token is retrieved
+  $('#callApiBtn').hide();
+
+  // Get token as soon as possible
+  $.ajax({
+    url: '/get-token',
+    method: 'GET',
+    cache: true,
+    success: function (data) {
+      accessToken = data.access_token;
+      $('#callApiBtn').show();
+      $('#responseOutput').text('');
+    },
+    error: function (xhr) {
+      $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
+    }
   });
 
   // Trigger API call on button click
@@ -41,10 +56,8 @@ $(document).ready(function () {
       customString1,
       configurationItemId,
       type,
-      description // <-- Pass to server
+      description
     };
-
-    console.log('Submitting payload:', payload);
 
     $.ajax({
       url: '/make-call',
