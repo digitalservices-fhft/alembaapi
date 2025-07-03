@@ -83,8 +83,8 @@ app.post('/make-call', (req, res) => {
   const type = req.body.type || req.query.type || 143;
 
   const callPayload = {
-    "Description": detail,
-    "DescriptionHtml": `<p>${detail}</p>`,
+    "Description": title,
+    "DescriptionHtml": `<p>${title}</p>`,
     "IpkStatus": 1,
     "IpkStream": 0,
     "Location": 23427,
