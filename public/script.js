@@ -68,9 +68,9 @@ $(function () {
         if (response.callRef) {
           $('#callApiBtn').hide();
           $('#responseOutput').html(
-            '<div class="alert alert-success">Call created and submitted successfully. Reference: <b>' +
+            '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
               response.callRef +
-              '</b></div>'
+              '</b></center></div>'
           );
         } else {
           $('#responseOutput').text('API call succeeded but no call reference returned.');
