@@ -41,25 +41,25 @@ $(document).ready(function () {
     };
 
     $.ajax({
-      url: '/make-call',
-      method: 'POST',
-      contentType: 'application/json',
-       JSON.stringify(payload),
-      success: function (response) {
-        if (response.callRef) {
-          $('#callApiBtn').hide();
-          $('#responseOutput').html(
-            '<div class="alert alert-success" role="alert">' +
-            'Thank you for logging - Your reference number is <strong>' + response.callRef + '</strong>.' +
-            '</div>'
-          );
-        } else {
-          $('#responseOutput').text('Call submitted but no reference number returned.');
-        }
-      },
-      error: function (xhr) {
-        $('#responseOutput').text('Error: ' + xhr.responseText);
-      }
-    });
+  url: '/make-call',
+  method: 'POST',
+  contentType: 'application/json',
+   JSON.stringify(payload),
+  success: function (response) {
+    if (response.callRef) {
+      $('#callApiBtn').hide();
+      $('#responseOutput').html(
+        '<div class="alert alert-success" role="alert">' +
+        'Thank you for logging - Your reference number is <strong>' + response.callRef + '</strong>.' +
+        '</div>'
+      );
+    } else {
+      $('#responseOutput').text('Call submitted but no reference number returned.');
+    }
+  }, // <--- THIS COMMA IS REQUIRED!
+  error: function (xhr) {
+    $('#responseOutput').text('Error: ' + xhr.responseText);
+  }
+});
   });
 });
