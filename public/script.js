@@ -7,6 +7,21 @@ $(function () {
     return params.has(param) ? params.get(param) : defaultValue;
   }
 
+   // Get Auth Token for API
+  $.ajax({
+    url: '/get-token',
+    method: 'GET',
+    cache: true,
+    success: function (data) {
+      accessToken = data.access_token;
+      $btn.show();
+      $('#responseOutput').text('');
+    },
+    error: function (xhr) {
+      $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
+    }
+  });
+  
   const boardTitle = getParam('title');
   if (boardTitle) {
     $('h1.mb-4').text(boardTitle);
@@ -81,21 +96,6 @@ if (codeType === 'stock') {
 }
 
   $btn.hide(); // Hide button until token is loaded
-
-  // Get Auth Token for API
-  $.ajax({
-    url: '/get-token',
-    method: 'GET',
-    cache: true,
-    success: function (data) {
-      accessToken = data.access_token;
-      $btn.show();
-      $('#responseOutput').text('');
-    },
-    error: function (xhr) {
-      $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
-    }
-  });
 
   // Check parameters for stock control or Call, add payload and call API
   $btn.click(function () {
