@@ -40,6 +40,7 @@ md-outlined-text-field {
   width: 100%;
   margin-top: 0.5rem;
   margin-bottom: 1.5rem;
+  background-color: #00A499;
 }
 
 md-filled-button,
