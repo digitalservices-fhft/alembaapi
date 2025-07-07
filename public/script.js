@@ -91,7 +91,7 @@ $(function () {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-         JSON.stringify(payload),
+        data: JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
             $('#callApiBtn').hide();
@@ -130,7 +130,7 @@ $(function () {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-         JSON.stringify(payload),
+        data: JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
             $('#callApiBtn').hide();
