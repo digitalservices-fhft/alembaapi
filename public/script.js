@@ -24,19 +24,21 @@ $(function () {
   let accessToken = '';
 
   // Change button wording depending on codeType
-  var $btn = $('#callApiBtn');
+  
+    var $btn = $('#callApiBtn');
 
-  if (codeType === 'call') {
-    $textSpan.text('Let us know!');
-    $btn.show();
-  } else if (codeType === 'stock') {
-    $textSpan.text('Update stock');
-    $btn.show();
-  } else {
-    $textSpan.text('Submit');
-    $btn.hide();
-  }
-
+    // Determine the button text based on codeType
+    if (codeType === 'call') {
+        $btn.text('Let us know!');
+        $btn.show();
+    } else if (codeType === 'stock') {
+        $btn.text('Update stock');
+        $btn.show();
+    } else {
+        $btn.text('Submit');
+        $btn.show();
+    }
+  
   // Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
