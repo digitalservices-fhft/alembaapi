@@ -8,40 +8,31 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <!-- Custom Styles -->
- 
 <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
+  <!-- Digital Services Logo and Title text -->
   <div class="container text-center">
     <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png">
-    <h1 class="mb-4">If you are seeing this you have not passed the correct parameters!</h1>
-    
+    <h1 class="mb-4">If you are seeing this you have not passed the correct parameters!</h1>   
 <!-- Quantity input field (only used for stock transactions) -->
 <div id="stockFields" style="display: none;">
   <h2>Check the stock item before submitting</h2>
   <div id="image-container">
-    <!-- Image will be inserted here -->
+    <!-- Image will be inserted here based on keyword in title-->
   </div>
   <label for="quantityInput">Quantity:</label>
   <input type="number" id="quantityInput" name="quantity" min="1" required />
 </div>
-
 <!-- Output area -->
 <pre id="responseOutput"></pre>
-
     <button id="callApiBtn" class="btn btn-primary" style="display: none;">Let us know!</button>
     <div id="responseOutput" class="text-start mt-4"></div>
   </div>
-
-  <!-- jQuery -->
+  <!-- Load jQuery -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- App Logic -->
-  
- 
+  <!-- Load App Logic -->
 <script src="script.js"></script>
-
-
 </body>
 </html>

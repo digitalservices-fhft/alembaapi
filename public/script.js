@@ -58,6 +58,7 @@ $(function () {
 
   $('#callApiBtn').hide();
 
+  // Get Auth Token for API
   $.ajax({
     url: '/get-token',
     method: 'GET',
@@ -72,6 +73,7 @@ $(function () {
     }
   });
 
+  // Check parameters for stock control or Call, add payload and call API
   $('#callApiBtn').click(function () {
     if (codeType === 'stock') {
       const quantity = $('#quantityInput').val();
@@ -86,7 +88,7 @@ $(function () {
         transactionStatus: parseInt(transactionStatus, 10),
         quantity: parseInt(quantity, 10)
       };
-
+ 
       $.ajax({
         url: '/make-call',
         method: 'POST',
