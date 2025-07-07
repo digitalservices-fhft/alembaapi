@@ -1,4 +1,3 @@
-
 body {
   font-family: 'Roboto', Arial, sans-serif;
   margin: 0;
@@ -71,4 +70,11 @@ pre#responseOutput {
   md-tonal-button {
     width: 60%;
   }
+}
+
+
+/* Custom button color for Material Design button */
+md-filled-button {
+  --md-sys-color-primary: #00A499;
+  --md-sys-color-on-primary: white;
 }
