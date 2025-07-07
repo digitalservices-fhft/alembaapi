@@ -23,23 +23,20 @@ $(function () {
 
   let accessToken = '';
 
-  //Change button wording depending on codeType
-{
-      var codeType = getQueryParam('codeType');
-      var $btn = $('#callApiBtn');
-      var $textSpan = $btn.find('span').eq(1); // second span is the text
+  // Change button wording depending on codeType
+  var $btn = $('#callApiBtn');
+  var $textSpan = $btn.find('span').eq(1); // second span is the text
 
-      if (codeType === 'call') {
-        $textSpan.text('Let us know!');
-        $btn.show();
-      } else if (codeType === 'stock') {
-        $textSpan.text('Update stock');
-        $btn.show();
-      } else {
-        // Optionally hide or set default text
-        $textSpan.text('Submit');
-        $btn.hide();
-      }
+  if (codeType === 'call') {
+    $textSpan.text('Let us know!');
+    $btn.show();
+  } else if (codeType === 'stock') {
+    $textSpan.text('Update stock');
+    $btn.show();
+  } else {
+    $textSpan.text('Submit');
+    $btn.hide();
+  }
 
   // Image logic for stock codeType
   if (codeType === "stock") {
@@ -55,6 +52,8 @@ $(function () {
     };
 
     if (boardTitle) {
+      // Clear previous images to avoid duplicates
+      $('#image-container').empty();
       for (const keyword in imageMap) {
         if (boardTitle.toLowerCase().includes(keyword)) {
           const img = $('<img>', {
@@ -69,13 +68,14 @@ $(function () {
     }
   }
 
+  // Show or hide stock fields
   if (codeType === 'stock') {
     $('#stockFields').show();
   } else {
     $('#stockFields').hide();
   }
 
-  $('#callApiBtn').hide();
+  $btn.hide(); // Hide button until token is loaded
 
   // Get Auth Token for API
   $.ajax({
@@ -84,7 +84,7 @@ $(function () {
     cache: true,
     success: function (data) {
       accessToken = data.access_token;
-      $('#callApiBtn').show();
+      $btn.show();
       $('#responseOutput').text('');
     },
     error: function (xhr) {
@@ -93,7 +93,7 @@ $(function () {
   });
 
   // Check parameters for stock control or Call, add payload and call API
-  $('#callApiBtn').click(function () {
+  $btn.click(function () {
     if (codeType === 'stock') {
       const quantity = $('#quantityInput').val();
       if (!purchase || !transactionStatus || !quantity) {
@@ -107,15 +107,15 @@ $(function () {
         transactionStatus: parseInt(transactionStatus, 10),
         quantity: parseInt(quantity, 10)
       };
- 
+
       $.ajax({
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(payload),
+         JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
-            $('#callApiBtn').hide();
+            $btn.hide();
             $('#responseOutput').html(
               '<div class="alert alert-success"><center>Stock transaction submitted successfully. Reference: <b>' +
               response.callRef +
@@ -151,10 +151,10 @@ $(function () {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(payload),
+         JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
-            $('#callApiBtn').hide();
+            $btn.hide();
             $('#responseOutput').html(
               '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
               response.callRef +
