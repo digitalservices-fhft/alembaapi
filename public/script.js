@@ -23,6 +23,24 @@ $(function () {
 
   let accessToken = '';
 
+  //Change button wording depending on codeType
+{
+      var codeType = getQueryParam('codeType');
+      var $btn = $('#callApiBtn');
+      var $textSpan = $btn.find('span').eq(1); // second span is the text
+
+      if (codeType === 'call') {
+        $textSpan.text('Let us know!');
+        $btn.show();
+      } else if (codeType === 'stock') {
+        $textSpan.text('Update stock');
+        $btn.show();
+      } else {
+        // Optionally hide or set default text
+        $textSpan.text('Submit');
+        $btn.hide();
+      }
+
   // Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
