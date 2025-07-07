@@ -27,7 +27,7 @@ $(function () {
   if (codeType === "stock") {
     const imageMap = {
       smartcard: "smartcardkeyboard.png",
-      docking: "dockingstation.png"
+      docking: "dockingstation.png",
       mouse: "mouse.png",
       barcode: "scanner.png",
       keyboard: "keyboard.png",
