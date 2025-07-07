@@ -1,4 +1,4 @@
-// public/script.js
+
 $(function () {
   $('#responseOutput').text('Loading authentication token...');
 
@@ -24,6 +24,12 @@ $(function () {
 
   let accessToken = '';
 
+  if (codeType === 'stock') {
+    $('#stockFields').show();
+  } else {
+    $('#stockFields').hide();
+  }
+
   $('#callApiBtn').hide();
 
   $.ajax({
@@ -39,14 +45,6 @@ $(function () {
       $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
     }
   });
-
-
-// Show quantity input only if codeType=stock
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('codeType') === 'stock') {
-    document.getElementById('stockFields').style.display = 'block';
-  }
-
 
   $('#callApiBtn').click(function () {
     if (codeType === 'stock') {
