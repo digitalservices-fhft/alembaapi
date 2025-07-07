@@ -12,12 +12,14 @@ NODE.JS Application - Based on URL parameters will perform verious calls to the 
 **Set the title for the HTML H1 on the page**
 
 | Parameter Name  | Type | Purpose |
+| ------------- | ------------- |------------- |
 | Title  | String | Optional title to dynamically update the page heading.|
 
 For transactions the tile will display the appropriate inventory image type.
-Images shouold be around 250px high and in .png format with transparent backgrounds.
 
-| #keyword  | Image | Description |
+Images should be around 250px high and in .png format with transparent backgrounds.
+
+| keyword  | Image | Description |
 | ------------- | ------------- |------------- |
 | keyboard | img/keyboard.png |Standard Keyboard |
 | smartcard  | img/smartcardkeyboard.png | Smartcard Keyboard |
