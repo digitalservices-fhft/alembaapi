@@ -78,6 +78,7 @@ app.post('/make-call', (req, res) => {
     }
 
     const {
+        codeType,
         receivingGroup,
         customString1,
         configurationItemId,
