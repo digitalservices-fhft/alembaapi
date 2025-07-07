@@ -70,11 +70,11 @@ $(function () {
   }
 
   // Show or hide stock fields
-  if (codeType === 'stock') {
+if (codeType === 'stock') {
     $('#stockFields').show();
-  } else {
+} else {
     $('#stockFields').hide();
-  }
+}
 
   $btn.hide(); // Hide button until token is loaded
 

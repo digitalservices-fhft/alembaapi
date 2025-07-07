@@ -65,3 +65,6 @@ pre#responseOutput {
     width: 60%;
   }
 }
+#stockFields {
+  display: none;
+}
