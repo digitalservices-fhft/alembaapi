@@ -1,36 +1,31 @@
 // public/script.js
 $(function () {
-  // Show loading indicator immediately
   $('#responseOutput').text('Loading authentication token...');
 
-  // Use URLSearchParams for robust query string parsing
   const params = new URLSearchParams(window.location.search);
 
   function getParam(param, defaultValue = null) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
 
-  // Set heading if title param exists
   const boardTitle = getParam('title');
   if (boardTitle) {
     $('h1.mb-4').text(boardTitle);
   }
 
-  // Get parameters for payload
+  const codeType = getParam('codeType', 'call');
   const receivingGroup = getParam('receivingGroup');
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
   const description = getParam('description');
-  const impact = parseInt(getParam('impact'));
-  const urgency = parseInt(getParam('urgency'));
+  const purchase = getParam('purchase');
+  const transactionStatus = getParam('transactionStatus');
 
   let accessToken = '';
 
-  // Hide the call button until token is retrieved
   $('#callApiBtn').hide();
 
-  // Get token as soon as possible
   $.ajax({
     url: '/get-token',
     method: 'GET',
@@ -45,48 +40,93 @@ $(function () {
     }
   });
 
-  // Trigger API call on button click
+
+// Show quantity input only if codeType=stock
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('codeType') === 'stock') {
+    document.getElementById('stockFields').style.display = 'block';
+  }
+
+
   $('#callApiBtn').click(function () {
-    // Validate parameters
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
-      $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
-      return;
-    }
+    if (codeType === 'stock') {
+      const quantity = $('#quantityInput').val();
+      if (!purchase || !transactionStatus || !quantity) {
+        $('#responseOutput').text('Missing required parameters for stock: purchase, transactionStatus, or quantity.');
+        return;
+      }
 
-    const payload = {
-      receivingGroup,
-      customString1,
-      configurationItemId,
-      type,
-      description,
-      impact,
-      urgency
-    };
+      const payload = {
+        codeType: 'stock',
+        purchase: parseInt(purchase, 10),
+        transactionStatus: parseInt(transactionStatus, 10),
+        quantity: parseInt(quantity, 10)
+      };
 
-    $.ajax({
-      url: '/make-call',
-      method: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify(payload),
-      success: function (response) {
-        if (response.callRef) {
-          $('#callApiBtn').hide();
-          $('#responseOutput').html(
-            '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
+      $.ajax({
+        url: '/make-call',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: function (response) {
+          if (response.callRef) {
+            $('#callApiBtn').hide();
+            $('#responseOutput').html(
+              '<div class="alert alert-success"><center>Stock transaction submitted successfully. Reference: <b>' +
               response.callRef +
               '</b></center></div>'
-          );
-        } else {
-          $('#responseOutput').text('API call succeeded but no call reference returned.');
+            );
+          } else {
+            $('#responseOutput').text('API call succeeded but no reference returned.');
+          }
+        },
+        error: function (xhr) {
+          let errorMsg = 'API call failed.';
+          if (xhr.responseText) {
+            errorMsg += ' ' + xhr.responseText;
+          }
+          $('#responseOutput').text(errorMsg);
         }
-      },
-      error: function (xhr) {
-        let errorMsg = 'API call failed.';
-        if (xhr.responseText) {
-          errorMsg += ' ' + xhr.responseText;
-        }
-        $('#responseOutput').text(errorMsg);
+      });
+    } else {
+      if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
+        $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
+        return;
       }
-    });
+
+      const payload = {
+        receivingGroup,
+        customString1,
+        configurationItemId,
+        type,
+        description
+      };
+
+      $.ajax({
+        url: '/make-call',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: function (response) {
+          if (response.callRef) {
+            $('#callApiBtn').hide();
+            $('#responseOutput').html(
+              '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
+              response.callRef +
+              '</b></center></div>'
+            );
+          } else {
+            $('#responseOutput').text('API call succeeded but no call reference returned.');
+          }
+        },
+        error: function (xhr) {
+          let errorMsg = 'API call failed.';
+          if (xhr.responseText) {
+            errorMsg += ' ' + xhr.responseText;
+          }
+          $('#responseOutput').text(errorMsg);
+        }
+      });
+    }
   });
 });
