@@ -25,7 +25,6 @@ $(function () {
 
   // Change button wording depending on codeType
   var $btn = $('#callApiBtn');
-  var $textSpan = $btn.find('span').eq(1); // second span is the text
 
   if (codeType === 'call') {
     $textSpan.text('Let us know!');
