@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Digital Services Magic API</title>
   <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
-  <!-- Material Design Web Components -->
-  <script type="module" src="https://unpkg.com/@material/web/all.js"></script>
-  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-  <!-- Custom Styles
-  <link rel="stylesheet" href="style.css">  -->
+  <!-- Materialize CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <!-- Roboto Font -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png" alt="Digital Services Logo">
+    <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png" alt="Digital Services Logo" class="responsive-img">
     <h1 class="mb-4">If you are seeing this you have not passed the correct parameters!</h1>   
     <!-- Quantity input field (only used for stock transactions) -->
     <div id="stockFields" style="display: none;">
@@ -24,25 +22,26 @@
       <div id="image-container">
         <!-- Image will be inserted here based on keyword in title-->
       </div>
-      <md-filled-text-field
+      <form id="stockFields">
+      <div class="input-field"
         id="quantityInput"
         label="Quantity"
         type="number"
         min="1"
         required
         style="margin-bottom: 1rem;">
-      </md-filled-text-field>
+      </div>
+      </form>
     </div>
     <!-- Output area -->
     <pre id="responseOutput"></pre>
-    
-    <md-filled-button id="callApiBtn" style="display: none;">
-      <span class="material-icons" style="vertical-align:middle;">send</span>
+    <button type="submit" class="btn waves-effect" style="background-color:#00A499; width:100%; min-height:48px; border-radius:24px; font-size:1.1rem;" id="callApiBtn" style="display: none;">
       <span style="vertical-align:middle;">Let us know!</span>
-    </md-filled-button>
+    </button>
   </div>
-  <!-- Load jQuery -->
+  <!-- Load jQuery & Materialize -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <!-- Load App Logic -->
   <script src="script.js"></script>
 </body>
