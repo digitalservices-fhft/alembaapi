@@ -68,3 +68,7 @@ pre#responseOutput {
 #stockFields {
   display: none;
 }
+
+#stockFields input[type="text"] {
+  background-color: #f1f1f1;
+}
