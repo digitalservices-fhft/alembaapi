@@ -26,13 +26,14 @@ $(function () {
   // Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
-      smartcard: "smartcardkeyboard.jpg",
-      mouse: "mouse.jpg",
-      barcode: "bardcodescanner.jpg",
-      keyboard: "keyboard.jpg",
-      rover: "rover.jpg",
-      powermic: "powermic.jpg",
-      screen: "screen.jpg"
+      smartcard: "smartcardkeyboard.png",
+      docking: "dockingstation.png"
+      mouse: "mouse.png",
+      barcode: "scanner.png",
+      keyboard: "keyboard.png",
+      rover: "rover.png",
+      powermic: "powermic.png",
+      monitor: "monitor.png"
     };
 
     if (boardTitle) {
