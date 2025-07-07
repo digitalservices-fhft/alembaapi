@@ -18,11 +18,11 @@
     <h1 class="mb-4">If you are seeing this you have not passed the correct parameters!</h1>   
     <!-- Quantity input field (only used for stock transactions) -->
     <div id="stockFields" style="display: none;">
-      <h2>Check the stock item before submitting</h2>
+      <h2>Check the stock item matches the image before submitting</h2>
       <div id="image-container">
         <!-- Image will be inserted here based on keyword in title-->
       </div>
-      <md-filled-text-field
+      <md-filled-text-field>
         id="quantityInput"
         label="Quantity"
         type="number"
@@ -33,6 +33,7 @@
     </div>
     <!-- Output area -->
     <pre id="responseOutput"></pre>
+    <md-filled-tonal-button>Tonal</md-filled-tonal-button>
     <md-filled-button id="callApiBtn" style="display: none;">
       <span class="material-icons" style="vertical-align:middle;">send</span>
       <span style="vertical-align:middle;">Let us know!</span>
