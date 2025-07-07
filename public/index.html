@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Digital Services Ticket Logging</title>
+  <title>Digital Services Magic API</title>
   <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -20,6 +20,9 @@
 <!-- Quantity input field (only used for stock transactions) -->
 <div id="stockFields" style="display: none;">
   <h2>Check the stock item before submitting</h2>
+  <div id="image-container">
+    <!-- Image will be inserted here -->
+  </div>
   <label for="quantityInput">Quantity:</label>
   <input type="number" id="quantityInput" name="quantity" min="1" required />
 </div>
@@ -36,7 +39,37 @@
  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- App Logic -->
   
-  
+ <script>
+    $(document).ready(function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeType = urlParams.get("codeType");
+      const title = urlParams.get("Title")?.toLowerCase() || "";
+
+      if (codeType === "stock") {
+        const imageMap = {
+          smartcard: "smartcardkeyboard.jpg",
+          mouse: "mouse.jpg",
+          barcode: "bardcodescanner.jpg",
+          keyboard: "keyboard.jpg",
+          rover: "rover.jpg",
+          powermic: "powermic.jpg",
+          screen: "screen.jpg"
+        };
+
+        for (const keyword in imageMap) {
+          if (title.includes(keyword)) {
+            const img = $('<img>', {
+              src: `img/${imageMap[keyword]}`,
+              alt: keyword,
+              onerror: "this.style.display='none'"
+            });
+            $('#image-container').append(img);
+            break;
+          }
+        }
+      }
+    });
+  </script>
 <script src="script.js"></script>
 
 
