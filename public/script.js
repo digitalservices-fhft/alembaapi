@@ -13,6 +13,33 @@ $(function () {
     $('h1.mb-4').text(boardTitle);
   }
 
+
+  if (codeType === "stock") {
+        const imageMap = {
+          smartcard: "smartcardkeyboard.jpg",
+          mouse: "mouse.jpg",
+          barcode: "bardcodescanner.jpg",
+          keyboard: "keyboard.jpg",
+          rover: "rover.jpg",
+          powermic: "powermic.jpg",
+          screen: "screen.jpg"
+        };
+
+        for (const keyword in imageMap) {
+          if (title.includes(keyword)) {
+            const img = $('<img>', {
+              src: `img/${imageMap[keyword]}`,
+              alt: keyword,
+              onerror: "this.style.display='none'"
+            });
+            $('#image-container').append(img);
+            break;
+          }
+        }
+      }
+    });
+ 
+
   const codeType = getParam('codeType', 'call');
   const receivingGroup = getParam('receivingGroup');
   const customString1 = getParam('customString1');

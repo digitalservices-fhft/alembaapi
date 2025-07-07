@@ -39,37 +39,7 @@
  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- App Logic -->
   
- <script>
-    $(document).ready(function () {
-      const urlParams = new URLSearchParams(window.location.search);
-      const codeType = urlParams.get("codeType");
-      const title = urlParams.get("Title")?.toLowerCase() || "";
-
-      if (codeType === "stock") {
-        const imageMap = {
-          smartcard: "smartcardkeyboard.jpg",
-          mouse: "mouse.jpg",
-          barcode: "bardcodescanner.jpg",
-          keyboard: "keyboard.jpg",
-          rover: "rover.jpg",
-          powermic: "powermic.jpg",
-          screen: "screen.jpg"
-        };
-
-        for (const keyword in imageMap) {
-          if (title.includes(keyword)) {
-            const img = $('<img>', {
-              src: `img/${imageMap[keyword]}`,
-              alt: keyword,
-              onerror: "this.style.display='none'"
-            });
-            $('#image-container').append(img);
-            break;
-          }
-        }
-      }
-    });
-  </script>
+ 
 <script src="script.js"></script>
 
 
