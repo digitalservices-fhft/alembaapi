@@ -15,6 +15,11 @@ h1 {
   margin-bottom: 1.25rem;
   font-weight: 500;
 }
+h1.mb-4 {
+  font-size: 1.3rem;
+  margin-bottom: 1.25rem;
+  font-weight: 500;
+}
 h2 {
   font-size: 1.1rem;
   margin: 1.5rem 0 1rem 0;
@@ -71,8 +76,11 @@ pre#responseOutput {
 #stockFields input[type="text"] {
   background-color: #f1f1f1;
 }
-#mb-4{
-  font-size: 1.3rem;
-  margin-bottom: 1.25rem;
-  font-weight: 500;
+pre#responseOutput {
+  white-space: pre-wrap;        /* Allows wrapping of preformatted text */
+  word-wrap: break-word;        /* Breaks long words to fit the container */
+  overflow-x: auto;             /* Adds horizontal scroll only if needed */
+  box-sizing: border-box;       /* Ensures padding is included in width */
+  width: 100%;                  /* Makes pre fill the container width */
+  max-width: 100%;              /* Prevents overflow beyond container */
 }
