@@ -1,4 +1,3 @@
-
 $(function () {
   $('#responseOutput').text('Loading authentication token...');
 
@@ -13,33 +12,6 @@ $(function () {
     $('h1.mb-4').text(boardTitle);
   }
 
-
-  if (codeType === "stock") {
-        const imageMap = {
-          smartcard: "smartcardkeyboard.jpg",
-          mouse: "mouse.jpg",
-          barcode: "bardcodescanner.jpg",
-          keyboard: "keyboard.jpg",
-          rover: "rover.jpg",
-          powermic: "powermic.jpg",
-          screen: "screen.jpg"
-        };
-
-        for (const keyword in imageMap) {
-          if (title.includes(keyword)) {
-            const img = $('<img>', {
-              src: `img/${imageMap[keyword]}`,
-              alt: keyword,
-              onerror: "this.style.display='none'"
-            });
-            $('#image-container').append(img);
-            break;
-          }
-        }
-      }
-    });
- 
-
   const codeType = getParam('codeType', 'call');
   const receivingGroup = getParam('receivingGroup');
   const customString1 = getParam('customString1');
@@ -50,6 +22,33 @@ $(function () {
   const transactionStatus = getParam('transactionStatus');
 
   let accessToken = '';
+
+  // Image logic for stock codeType
+  if (codeType === "stock") {
+    const imageMap = {
+      smartcard: "smartcardkeyboard.jpg",
+      mouse: "mouse.jpg",
+      barcode: "bardcodescanner.jpg",
+      keyboard: "keyboard.jpg",
+      rover: "rover.jpg",
+      powermic: "powermic.jpg",
+      screen: "screen.jpg"
+    };
+
+    if (boardTitle) {
+      for (const keyword in imageMap) {
+        if (boardTitle.toLowerCase().includes(keyword)) {
+          const img = $('<img>', {
+            src: `img/${imageMap[keyword]}`,
+            alt: keyword,
+            onerror: "this.style.display='none'"
+          });
+          $('#image-container').append(img);
+          break;
+        }
+      }
+    }
+  }
 
   if (codeType === 'stock') {
     $('#stockFields').show();
@@ -92,7 +91,7 @@ $(function () {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(payload),
+         JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
             $('#callApiBtn').hide();
@@ -131,7 +130,7 @@ $(function () {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(payload),
+         JSON.stringify(payload),
         success: function (response) {
           if (response.callRef) {
             $('#callApiBtn').hide();
