@@ -71,10 +71,3 @@ pre#responseOutput {
     width: 60%;
   }
 }
-
-
-/* Custom button color for Material Design button */
-md-filled-button {
-  --md-sys-color-primary: #00A499;
-  --md-sys-color-on-primary: white;
-}
