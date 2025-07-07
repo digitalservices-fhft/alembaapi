@@ -9,4 +9,6 @@
 | configurationItemId  | Integer | Identifies the configuration item related to the ticket.|
 | description  | String | Adds the call description to both the Description and DescriptionHTML.|
 | type  | Integer | Adds the call category.|
+| impact | Integer | Adds the call impact.|
+| urgency  | Integer | Adds the call urgency.|
 | Title  | String | Optional title to dynamically update the page heading.|

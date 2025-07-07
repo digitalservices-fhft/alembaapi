@@ -22,6 +22,8 @@ $(function () {
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
   const description = getParam('description');
+  const impact = parseInt(getParam('impact'));
+  const urgency = parseInt(getParam('urgency'));
 
   let accessToken = '';
 
@@ -56,7 +58,9 @@ $(function () {
       customString1,
       configurationItemId,
       type,
-      description
+      description,
+      impact,
+      urgency
     };
 
     $.ajax({

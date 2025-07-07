@@ -91,7 +91,9 @@ app.post('/make-call', (req, res) => {
     customString1,
     configurationItemId,
     type,
-    description
+    description,
+    impact,
+    urgency
   } = req.body;
 
   // Validate required parameters
@@ -100,26 +102,28 @@ app.post('/make-call', (req, res) => {
     !customString1 ||
     !configurationItemId ||
     !type ||
-    !description
+    !description ||
+    impact === undefined ||
+    urgency === undefined
   ) {
-    return res.status(400).send('Missing required parameters: receivingGroup, customString1, configurationItemId, type, and description');
+    return res.status(400).send('Missing required parameters: receivingGroup, customString1, configurationItemId, type, description, impact, and urgency');
   }
 
   // Use the description for both Description and DescriptionHtml
-  const callPayload = {
+   const callPayload = {
     Description: description,
     DescriptionHtml: `<p>${description}</p>`,
     IpkStatus: 1,
     IpkStream: 0,
     Location: 23427,
-    Impact: 1,
-    Urgency: 4,
+    Impact: parseInt(impact, 10),
+    Urgency: parseInt(urgency, 10),
     ReceivingGroup: parseInt(receivingGroup, 10),
     Type: parseInt(type, 10),
     CustomString1: customString1,
     ConfigurationItemId: parseInt(configurationItemId, 10),
     User: 34419
-  };
+ };
 
   const options = {
     method: 'POST',
