@@ -83,6 +83,8 @@ app.post('/make-call', (req, res) => {
     customString1,
     configurationItemId,
     type,
+    impact,
+    urgency,
     description,
     purchase,
     transactionStatus,
@@ -162,7 +164,7 @@ app.post('/make-call', (req, res) => {
     reqStock.write(JSON.stringify(stockPayload));
     reqStock.end();
   } else {
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
       return res.status(400).send('Missing required parameters for call creation');
     }
 
@@ -171,8 +173,8 @@ app.post('/make-call', (req, res) => {
       DescriptionHtml: `<p>${description}</p>`,
       IpkStatus: 1,
       IpkStream: 0,
-      Impact: 1,
-      Urgency: 4,
+      Impact: parseInt(impact, 10),
+      Urgency: parseInt(urgency, 10),
       ReceivingGroup: parseInt(receivingGroup, 10),
       Type: parseInt(type, 10),
       CustomString1: customString1,

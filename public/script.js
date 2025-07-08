@@ -30,6 +30,8 @@
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
   const description = getParam('description');
+  const impact = getParam('impact');
+  const urgency = getParam('urgncy');
   const purchase = getParam('purchase');
   const transactionStatus = getParam('transactionStatus');
 
@@ -138,8 +140,8 @@ if (codeType === 'stock') {
         }
       });
     } else {
-      if (!receivingGroup || !customString1 || !configurationItemId || !type || !description) {
-        $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, and description.');
+      if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
+        $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, impacct, urgency and description.');
         return;
       }
 
