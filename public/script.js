@@ -162,6 +162,7 @@ if (codeType === 'stock') {
         contentType: 'application/json',
         data: JSON.stringify(payload),
         success: function (response) {
+        $('#responseOutput').show(); 
           if (response.callRef) {
             $btn.hide();
             $('#responseOutput').html(
@@ -174,6 +175,7 @@ if (codeType === 'stock') {
           }
         },
         error: function (xhr) {
+          $('#responseOutput').show();
           let errorMsg = 'API call failed.';
           if (xhr.responseText) {
             errorMsg += ' ' + xhr.responseText;

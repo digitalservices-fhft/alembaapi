@@ -60,6 +60,12 @@ pre#responseOutput {
   text-align: left;
   font-size: 1rem;
   overflow-x: auto;
+  white-space: pre-wrap;        
+  word-wrap: break-word;        
+  overflow-x: auto;            
+  box-sizing: border-box;       
+  width: 100%;                 
+  max-width: 100%;  
 }
 @media (min-width: 600px) {
   .container {
@@ -75,12 +81,4 @@ pre#responseOutput {
 }
 #stockFields input[type="text"] {
   background-color: #f1f1f1;
-}
-pre#responseOutput {
-  white-space: pre-wrap;        /* Allows wrapping of preformatted text */
-  word-wrap: break-word;        /* Breaks long words to fit the container */
-  overflow-x: auto;             /* Adds horizontal scroll only if needed */
-  box-sizing: border-box;       /* Ensures padding is included in width */
-  width: 100%;                  /* Makes pre fill the container width */
-  max-width: 100%;              /* Prevents overflow beyond container */
 }
