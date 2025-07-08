@@ -1,3 +1,4 @@
+  $(document).ready(function () {
   const params = new URLSearchParams(window.location.search);
 
   function getParam(param, defaultValue = null) {
