@@ -13,16 +13,23 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container-fluid min-vh-100 d-flex flex-column justify-content-center align-items-center bg-light">
+<div class="container-fluid min-vh-100 d-flex flex-column justify-content-center align-items-center bg-light">
     <div class="w-100 px-3" style="max-width: 480px;">
-      <h1 class="mb-4 text-center">Please enter the quantity</h1>
-      <div class="mb-3">
+      <h1 class="mb-4 text-center">Digital Services Magic API</h1>
+      <div id="logo" class="mb-3">
+        <img src="img/logo.png" alt="Digital Services Logo" class="img-fluid" />
+      </div>
+      <h2>If you are seeing this you have not passed the correct parameters!</h2>
+      <p class="text-muted">Check the stock item matches the image before submitting</p>
+<div class="mb-3">
         <label for="quantityInput" class="form-label">Quantity</label>
         <input type="number" class="form-control form-control-lg" id="quantityInput" placeholder="Enter quantity" />
       </div>
+
       <div id="stockFields" class="mb-3">
         <!-- Additional stock fields can be added here -->
       </div>
+
       <button id="callApiBtn" class="btn btn-primary btn-lg w-100">Submit</button>
       <div id="responseOutput" class="mt-4" style="display: none;"></div>
     </div>

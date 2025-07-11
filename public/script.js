@@ -1,30 +1,10 @@
-  $(document).ready(function () {
+$(document).ready(function () {
   const params = new URLSearchParams(window.location.search);
-
   function getParam(param, defaultValue = null) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
 
-   // Get Auth Token for API
-  $.ajax({
-    url: '/get-token',
-    method: 'GET',
-    cache: true,
-    success: function (data) {
-      accessToken = data.access_token;
-      $btn.show();
-      $('#responseOutput').text('');
-    },
-    error: function (xhr) {
-      $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
-    }
-  });
-  
   const boardTitle = getParam('title');
-  if (boardTitle) {
-    $('h1.mb-4').text(boardTitle);
-  }
-
   const codeType = getParam('codeType', 'call');
   const receivingGroup = getParam('receivingGroup');
   const customString1 = getParam('customString1');
@@ -35,30 +15,19 @@
   const urgency = getParam('urgency');
   const purchase = getParam('purchase');
   const transactionStatus = getParam('transactionStatus');
-
   let accessToken = '';
 
-  // Hide Response form
-
   $('#responseOutput').hide();
+  var $btn = $('#callApiBtn');
 
-  // Change button wording depending on codeType
-  
-    var $btn = $('#callApiBtn');
+  if (codeType === 'call') {
+    $btn.text('Let us know!');
+  } else if (codeType === 'stock') {
+    $btn.text('Update stock');
+  } else {
+    $btn.text('Submit');
+  }
 
-    // Determine the button text based on codeType
-    if (codeType === 'call') {
-        $btn.text('Let us know!');
-        $btn.show();
-    } else if (codeType === 'stock') {
-        $btn.text('Update stock');
-        $btn.show();
-    } else {
-        $btn.text('Submit');
-        $btn.show();
-    }
-  
-  // Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
       smartcard: "smartcardkeyboard.png",
@@ -70,15 +39,14 @@
       powermic: "powermic.png",
       monitor: "monitor.png"
     };
-
     if (boardTitle) {
-      // Clear previous images to avoid duplicates
       $('#image-container').empty();
       for (const keyword in imageMap) {
         if (boardTitle.toLowerCase().includes(keyword)) {
           const img = $('<img>', {
             src: `img/${imageMap[keyword]}`,
             alt: keyword,
+            class: "img-fluid",
             onerror: "this.style.display='none'"
           });
           $('#image-container').append(img);
@@ -88,21 +56,36 @@
     }
   }
 
-  // Show or hide stock fields
-if (codeType === 'stock') {
+  if (codeType === 'stock') {
     $('#stockFields').show();
-} else {
+  } else {
     $('#stockFields').hide();
-}
+  }
 
-  $btn.hide(); // Hide button until token is loaded
+  $.ajax({
+    url: '/get-token',
+    method: 'GET',
+    cache: true,
+    success: function (data) {
+      accessToken = data.access_token;
+      $btn.show();
+      $('#responseOutput').text('');
+    },
+    error: function (xhr) {
+      $('#responseOutput').html(
+        `<div class="alert alert-danger" role="alert">Failed to retrieve token: ${xhr.responseText}</div>`
+      ).show();
+    }
+  });
 
-  // Check parameters for stock control or Call, add payload and call API
   $btn.click(function () {
+    $('#responseOutput').hide().html('');
     if (codeType === 'stock') {
       const quantity = $('#quantityInput').val();
       if (!purchase || !transactionStatus || !quantity) {
-        $('#responseOutput').text('Missing required parameters for stock: purchase, transactionStatus, or quantity.');
+        $('#responseOutput').html(
+          `<div class="alert alert-warning" role="alert">Missing required parameters for stock: purchase, transactionStatus, or quantity.</div>`
+        ).show();
         return;
       }
 
@@ -122,23 +105,58 @@ if (codeType === 'stock') {
           $('#responseOutput').show();
           if (response.callRef) {
             $btn.hide();
-            $('#responseOutput').html('<div class="alert alert-success" role="alert">' + response.callRef + '</div>');
+            $('#responseOutput').html(
+              `<div class="alert alert-success" role="alert">Stock transaction submitted successfully. Reference: <strong>${response.callRef}</strong></div>`
+            );
           } else {
-            $('#responseOutput').text('API call succeeded but no reference returned.');
+            $('#responseOutput').html(
+              `<div class="alert alert-info" role="alert">API call succeeded but no reference returned.</div>`
+            );
+          }
+
+          // Additional reverse transaction if status is 4
+          if (parseInt(transactionStatus, 10) === 4) {
+            const reversePayload = {
+              codeType: 'stock',
+              purchase: parseInt(purchase, 10),
+              transactionStatus: 2,
+              quantity: -parseInt(quantity, 10)
+            };
+            $.ajax({
+              url: '/make-call',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(reversePayload),
+              success: function (reverseResponse) {
+                if (reverseResponse.callRef) {
+                  $('#responseOutput').append(
+                    `<div class="alert alert-success mt-2" role="alert">Reverse transaction submitted. Reference: <strong>${reverseResponse.callRef}</strong></div>`
+                  );
+                }
+              },
+              error: function (xhr) {
+                $('#responseOutput').append(
+                  `<div class="alert alert-danger mt-2" role="alert">Reverse transaction failed: ${xhr.responseText}</div>`
+                );
+              }
+            });
           }
         },
         error: function (xhr) {
-          $('#responseOutput').show();
           let errorMsg = 'API call failed.';
           if (xhr.responseText) {
             errorMsg += ' ' + xhr.responseText;
           }
-          $('#responseOutput').html('<div class="alert alert-danger" role="alert">' + errorMsg + '</div>');
+          $('#responseOutput').html(
+            `<div class="alert alert-danger" role="alert">${errorMsg}</div>`
+          ).show();
         }
       });
     } else {
       if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
-        $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, impact, urgency and description.');
+        $('#responseOutput').html(
+          `<div class="alert alert-warning" role="alert">Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, impact, urgency and description.</div>`
+        ).show();
         return;
       }
 
@@ -158,21 +176,26 @@ if (codeType === 'stock') {
         contentType: 'application/json',
         data: JSON.stringify(payload),
         success: function (response) {
-        $('#responseOutput').show(); 
+          $('#responseOutput').show();
           if (response.callRef) {
             $btn.hide();
-            $('#responseOutput').html('<div class="alert alert-success" role="alert">' + response.callRef + '</div>');
+            $('#responseOutput').html(
+              `<div class="alert alert-success" role="alert">Call created and submitted successfully. Reference: <strong>${response.callRef}</strong></div>`
+            );
           } else {
-            $('#responseOutput').text('API call succeeded but no call reference returned.');
+            $('#responseOutput').html(
+              `<div class="alert alert-info" role="alert">API call succeeded but no call reference returned.</div>`
+            );
           }
         },
         error: function (xhr) {
-          $('#responseOutput').show();
           let errorMsg = 'API call failed.';
           if (xhr.responseText) {
             errorMsg += ' ' + xhr.responseText;
           }
-          $('#responseOutput').html('<div class="alert alert-danger" role="alert">' + errorMsg + '</div>');
+          $('#responseOutput').html(
+            `<div class="alert alert-danger" role="alert">${errorMsg}</div>`
+          ).show();
         }
       });
     }
