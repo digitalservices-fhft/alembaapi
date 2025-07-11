@@ -1,4 +1,28 @@
   $(document).ready(function () {
+
+function refreshTokenAndRetry(payload, onSuccess, onError) {
+  $.ajax({
+    url: '/get-token',
+    method: 'GET',
+    cache: true,
+    success: function (data) {
+      accessToken = data.access_token;
+      $.ajax({
+        url: '/make-call',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: onSuccess,
+        error: onError
+      });
+    },
+    error: function (xhr) {
+      $('#responseOutput').html(
+        `<div class="alert alert-danger" role="alert">Failed to refresh token: ${xhr.responseText}</div>`
+      ).show();
+    }
+  });
+}
   const params = new URLSearchParams(window.location.search);
 
   function getParam(param, defaultValue = null) {
@@ -117,7 +141,6 @@ if (codeType === 'stock') {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        headers: { 'Authorization': 'Bearer ' + accessToken },
         data: JSON.stringify(payload),
         success: function (response) {
           $('#responseOutput').show();
@@ -161,7 +184,6 @@ if (codeType === 'stock') {
         url: '/make-call',
         method: 'POST',
         contentType: 'application/json',
-        headers: { 'Authorization': 'Bearer ' + accessToken },
         data: JSON.stringify(payload),
         success: function (response) {
         $('#responseOutput').show(); 
