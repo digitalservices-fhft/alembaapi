@@ -119,35 +119,10 @@ if (codeType === 'stock') {
         contentType: 'application/json',
         data: JSON.stringify(payload),
         success: function (response) {
-                // Additional API call if codeType is 'stock' and transactionStatus is 4
-                if (codeType === 'stock' && parseInt(transactionStatus, 10) === 4) {
-                    const reversePayload = {
-                        codeType: 'stock',
-                        purchase: parseInt(purchase, 10),
-                        transactionStatus: 2,
-                        quantity: -parseInt(quantity, 10)
-                    };
-                    $.ajax({
-                        url: '/make-call',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(reversePayload),
-                        success: function (reverseResponse) {
-                            console.log('Reverse transaction submitted:', reverseResponse);
-                        },
-                        error: function (xhr) {
-                            console.error('Reverse transaction failed:', xhr.responseText);
-                        }
-                    });
-                }
           $('#responseOutput').show();
           if (response.callRef) {
             $btn.hide();
-            $('#responseOutput').html(
-              '<div class="alert alert-success"><center>Stock transaction submitted successfully. Reference: <b>' +
-              response.callRef +
-              '</b></center></div>'
-            );
+            $('#responseOutput').html('<div class="alert alert-success" role="alert">' + response.callRef + '</div>');
           } else {
             $('#responseOutput').text('API call succeeded but no reference returned.');
           }
@@ -158,7 +133,7 @@ if (codeType === 'stock') {
           if (xhr.responseText) {
             errorMsg += ' ' + xhr.responseText;
           }
-          $('#responseOutput').text(errorMsg);
+          $('#responseOutput').html('<div class="alert alert-danger" role="alert">' + errorMsg + '</div>');
         }
       });
     } else {
@@ -186,11 +161,7 @@ if (codeType === 'stock') {
         $('#responseOutput').show(); 
           if (response.callRef) {
             $btn.hide();
-            $('#responseOutput').html(
-              '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
-              response.callRef +
-              '</b></center></div>'
-            );
+            $('#responseOutput').html('<div class="alert alert-success" role="alert">' + response.callRef + '</div>');
           } else {
             $('#responseOutput').text('API call succeeded but no call reference returned.');
           }
@@ -201,7 +172,7 @@ if (codeType === 'stock') {
           if (xhr.responseText) {
             errorMsg += ' ' + xhr.responseText;
           }
-          $('#responseOutput').text(errorMsg);
+          $('#responseOutput').html('<div class="alert alert-danger" role="alert">' + errorMsg + '</div>');
         }
       });
     }

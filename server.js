@@ -56,16 +56,16 @@ app.get('/get-token', (req, res) => {
           res.set('Cache-Control', 'private, max-age=300');
           res.json({ access_token });
         } else {
-          res.status(500).send('No access_token in response');
+          res.send({ message: '<div class="alert alert-danger" role="alert">No access_token in response</div>' });
         }
       } catch (e) {
-        res.status(500).send('Failed to parse token response');
+        res.send({ message: '<div class="alert alert-danger" role="alert">Failed to parse token response</div>' });
       }
     });
   });
 
   request.on('error', (e) => {
-    res.status(500).send('Error requesting token: ' + e.message);
+    res.send({ message: '<div class="alert alert-danger" role="alert">Error requesting token: ' + e.message</div>' });
   });
 
   request.write(postData);
@@ -150,7 +150,7 @@ app.post('/make-call', (req, res) => {
         });
 
         submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting inventory allocation: ' + e.message);
+          res.send({ message: '<div class="alert alert-danger" role="alert">Error submitting inventory allocation: ' + e.message</div>' });
         });
 
         submitReq.end();
@@ -158,34 +158,11 @@ app.post('/make-call', (req, res) => {
     });
 
     reqStock.on('error', (e) => {
-      res.status(500).send('Error creating inventory allocation: ' + e.message);
+      res.send({ message: '<div class="alert alert-danger" role="alert">Error creating inventory allocation: ' + e.message</div>' });
     });
 
     reqStock.write(JSON.stringify(stockPayload));
-    
-                    // Additional API call if transactionStatus is 4
-                    if (parseInt(transactionStatus, 10) === 4) {
-                        const reversePayload = {
-                            Person: 34419,
-                            Purchase: parseInt(purchase, 10),
-                            Quantity: -parseInt(quantity, 10),
-                            TransactionStatus: 2
-                        };
-                        const reverseReq = https.request(options, (reverseRes) => {
-                            let reverseChunks = [];
-                            reverseRes.on('data', (chunk) => reverseChunks.push(chunk));
-                            reverseRes.on('end', () => {
-                                const reverseBody = Buffer.concat(reverseChunks).toString();
-                                console.log('Reverse transaction response:', reverseBody);
-                            });
-                        });
-                        reverseReq.on('error', (e) => {
-                            console.error('Error creating reverse inventory allocation:', e.message);
-                        });
-                        reverseReq.write(JSON.stringify(reversePayload));
-                        reverseReq.end();
-                    }
-reqStock.end();
+    reqStock.end();
   } else {
     if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
       return res.status(400).send('Missing required parameters for call creation');
@@ -256,7 +233,7 @@ reqStock.end();
         });
 
         submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting call: ' + e.message);
+          res.send({ message: '<div class="alert alert-danger" role="alert">Error submitting call: ' + e.message</div>' });
         });
 
         submitReq.end();
@@ -264,7 +241,7 @@ reqStock.end();
     });
 
     callReq.on('error', (e) => {
-      res.status(500).send('Error creating call: ' + e.message);
+      res.send({ message: '<div class="alert alert-danger" role="alert">Error creating call: ' + e.message</div>' });
     });
 
     callReq.write(JSON.stringify(callPayload));
