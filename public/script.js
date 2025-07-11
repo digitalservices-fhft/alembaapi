@@ -48,7 +48,7 @@ const boardTitle = getParam('title');
   } else {
     $btn.text('Submit');
   }
-
+// Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
       smartcard: "smartcardkeyboard.png",
