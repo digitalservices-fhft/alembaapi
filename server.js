@@ -73,6 +73,12 @@ app.get('/get-token', (req, res) => {
 });
 
 app.post('/make-call', (req, res) => {
+  
+  const now = Date.now();
+  if (!access_token || now >= token_expiry) {
+    return res.status(401).send('Access token expired or missing. Please refresh the page.');
+  }
+
   if (!access_token) {
     return res.status(401).send('No access token. Please authenticate first.');
   }
