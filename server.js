@@ -162,7 +162,30 @@ app.post('/make-call', (req, res) => {
     });
 
     reqStock.write(JSON.stringify(stockPayload));
-    reqStock.end();
+    
+                    // Additional API call if transactionStatus is 4
+                    if (parseInt(transactionStatus, 10) === 4) {
+                        const reversePayload = {
+                            Person: 34419,
+                            Purchase: parseInt(purchase, 10),
+                            Quantity: -parseInt(quantity, 10),
+                            TransactionStatus: 2
+                        };
+                        const reverseReq = https.request(options, (reverseRes) => {
+                            let reverseChunks = [];
+                            reverseRes.on('data', (chunk) => reverseChunks.push(chunk));
+                            reverseRes.on('end', () => {
+                                const reverseBody = Buffer.concat(reverseChunks).toString();
+                                console.log('Reverse transaction response:', reverseBody);
+                            });
+                        });
+                        reverseReq.on('error', (e) => {
+                            console.error('Error creating reverse inventory allocation:', e.message);
+                        });
+                        reverseReq.write(JSON.stringify(reversePayload));
+                        reverseReq.end();
+                    }
+reqStock.end();
   } else {
     if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
       return res.status(400).send('Missing required parameters for call creation');
