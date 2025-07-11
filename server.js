@@ -56,16 +56,16 @@ app.get('/get-token', (req, res) => {
           res.set('Cache-Control', 'private, max-age=300');
           res.json({ access_token });
         } else {
-          res.send({ message: '<div class="alert alert-danger" role="alert">No access_token in response</div>' });
+          res.status(500).send('No access_token in response');
         }
       } catch (e) {
-        res.send({ message: '<div class="alert alert-danger" role="alert">Failed to parse token response</div>' });
+        res.status(500).send('Failed to parse token response');
       }
     });
   });
 
   request.on('error', (e) => {
-    res.send({ message: '<div class="alert alert-danger" role="alert">Error requesting token: ' + e.message</div>' });
+    res.status(500).send('Error requesting token: ' + e.message);
   });
 
   request.write(postData);
@@ -150,7 +150,7 @@ app.post('/make-call', (req, res) => {
         });
 
         submitReq.on('error', (e) => {
-          res.send({ message: '<div class="alert alert-danger" role="alert">Error submitting inventory allocation: ' + e.message</div>' });
+          res.status(500).send('Error submitting inventory allocation: ' + e.message);
         });
 
         submitReq.end();
@@ -158,7 +158,7 @@ app.post('/make-call', (req, res) => {
     });
 
     reqStock.on('error', (e) => {
-      res.send({ message: '<div class="alert alert-danger" role="alert">Error creating inventory allocation: ' + e.message</div>' });
+      res.status(500).send('Error creating inventory allocation: ' + e.message);
     });
 
     reqStock.write(JSON.stringify(stockPayload));
@@ -233,7 +233,7 @@ app.post('/make-call', (req, res) => {
         });
 
         submitReq.on('error', (e) => {
-          res.send({ message: '<div class="alert alert-danger" role="alert">Error submitting call: ' + e.message</div>' });
+          res.status(500).send('Error submitting call: ' + e.message);
         });
 
         submitReq.end();
@@ -241,7 +241,7 @@ app.post('/make-call', (req, res) => {
     });
 
     callReq.on('error', (e) => {
-      res.send({ message: '<div class="alert alert-danger" role="alert">Error creating call: ' + e.message</div>' });
+      res.status(500).send('Error creating call: ' + e.message);
     });
 
     callReq.write(JSON.stringify(callPayload));
