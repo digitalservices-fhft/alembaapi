@@ -3,8 +3,27 @@ $(document).ready(function () {
   function getParam(param, defaultValue = null) {
     return params.has(param) ? params.get(param) : defaultValue;
   }
+ $.ajax({
+    url: '/get-token',
+    method: 'GET',
+    cache: true,
+    success: function (data) {
+      accessToken = data.access_token;
+      $btn.show();
+      $('#responseOutput').text('');
+    },
+    error: function (xhr) {
+      $('#responseOutput').html(
+        `<div class="alert alert-danger" role="alert">Failed to retrieve token: ${xhr.responseText}</div>`
+      ).show();
+    }
+  });
 
-  const boardTitle = getParam('title');
+const boardTitle = getParam('title');
+  if (boardTitle) {
+    $('h1.mb-4').text(boardTitle);
+  }
+
   const codeType = getParam('codeType', 'call');
   const receivingGroup = getParam('receivingGroup');
   const customString1 = getParam('customString1');
@@ -17,9 +36,11 @@ $(document).ready(function () {
   const transactionStatus = getParam('transactionStatus');
   let accessToken = '';
 
+    // Hide Response form
   $('#responseOutput').hide();
+  
+  // Change button wording depending on codeType
   var $btn = $('#callApiBtn');
-
   if (codeType === 'call') {
     $btn.text('Let us know!');
   } else if (codeType === 'stock') {
@@ -61,22 +82,6 @@ $(document).ready(function () {
   } else {
     $('#stockFields').hide();
   }
-
-  $.ajax({
-    url: '/get-token',
-    method: 'GET',
-    cache: true,
-    success: function (data) {
-      accessToken = data.access_token;
-      $btn.show();
-      $('#responseOutput').text('');
-    },
-    error: function (xhr) {
-      $('#responseOutput').html(
-        `<div class="alert alert-danger" role="alert">Failed to retrieve token: ${xhr.responseText}</div>`
-      ).show();
-    }
-  });
 
   $btn.click(function () {
     $('#responseOutput').hide().html('');
