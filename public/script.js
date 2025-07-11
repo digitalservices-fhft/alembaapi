@@ -139,7 +139,29 @@ if (codeType === 'stock') {
           }
           $('#responseOutput').text(errorMsg);
         }
-      });
+      
+                    // Additional API call if codeType is 'stock' and transactionStatus is 4
+                    if (codeType === 'stock' && parseInt(transactionStatus, 10) === 4) {
+                        const reversePayload = {
+                            codeType: 'stock',
+                            purchase: parseInt(purchase, 10),
+                            transactionStatus: 2,
+                            quantity: -parseInt(quantity, 10)
+                        };
+                        $.ajax({
+                            url: '/make-call',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(reversePayload),
+                            success: function (reverseResponse) {
+                                console.log('Reverse transaction submitted successfully.');
+                            },
+                            error: function (xhr) {
+                                console.error('Reverse transaction failed:', xhr.responseText);
+                            }
+                        });
+                    }
+});
     } else {
       if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
         $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, impact, urgency and description.');
