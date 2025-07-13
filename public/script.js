@@ -11,7 +11,7 @@
               url: '/make-call',
               method: 'POST',
               contentType: 'application/json',
-               JSON.stringify(payload),
+              data: JSON.stringify(payload),
               success: onSuccess,
               error: onError
             });
