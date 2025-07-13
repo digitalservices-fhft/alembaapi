@@ -100,7 +100,7 @@ function refreshTokenAndRetry(payload, onSuccess, onError) {
       $('#image-container').empty();
       for (const keyword in imageMap) {
         if (boardTitle.toLowerCase().includes(keyword)) {
-          const img = $('<img>', {
+          const img = $('<img class="position-absolute top-50 start-50 translate-middle">', {
             src: `img/${imageMap[keyword]}`,
             alt: keyword,
             onerror: "this.style.display='none'"
