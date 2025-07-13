@@ -95,22 +95,22 @@ function refreshTokenAndRetry(payload, onSuccess, onError) {
       monitor: "monitor.png"
     };
 
-    if (boardTitle) {
-      // Clear previous images to avoid duplicates
-      $('#image-container').empty();
-      for (const keyword in imageMap) {
-        if (boardTitle.toLowerCase().includes(keyword)) {
-          const img = $('<img class="position-absolute top-50 start-50 translate-middle">', {
-            src: `img/${imageMap[keyword]}`,
-            alt: keyword,
-            onerror: "this.style.display='none'"
-          });
-          $('#image-container').append(img);
-          break;
-        }
-      }
+   if (boardTitle) {
+  // Clear previous images to avoid duplicates
+  $('#image-container').empty();
+  for (const keyword in imageMap) {
+    if (boardTitle.toLowerCase().includes(keyword)) {
+      const img = $('<img>', {
+        src: `img/${imageMap[keyword]}`,
+        alt: keyword,
+        onerror: "this.style.display='none'",
+        class: 'img-fluid d-block mx-auto' // Center the image and make it responsive
+      });
+      $('#image-container').append(img);
+      break;
     }
   }
+}
 
   // Show or hide stock fields
 if (codeType === 'stock') {
