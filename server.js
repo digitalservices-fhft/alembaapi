@@ -1,10 +1,9 @@
-
-// Updated server.js with support for codeType=call and codeType=stock
 const express = require('express');
 const https = require('https');
 const qs = require('querystring');
 const path = require('path');
 const app = express();
+const axios = require('axios');
 const PORT = process.env.PORT || 3000;
 
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
@@ -17,10 +16,12 @@ app.use(express.json());
 let access_token = '';
 let token_expiry = 0;
 
+// Reporting Dashboard Application redirect 
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// Get Auth token, required for all applications
 app.get('/get-token', (req, res) => {
   const now = Date.now();
   if (access_token && now < token_expiry) {
@@ -28,6 +29,7 @@ app.get('/get-token', (req, res) => {
     return res.json({ access_token });
   }
 
+//Use environment variables for Login details, required for all applications
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -76,6 +78,7 @@ app.get('/get-token', (req, res) => {
   request.end();
 });
 
+// Creates the Alemba call or inventory transaction for the QR Code application
 app.post('/make-call', (req, res) => {
   
   const now = Date.now();
@@ -259,6 +262,15 @@ app.post('/make-call', (req, res) => {
   }
 });
 
+// Dashboard Application API Calls
+
+app.get('/api/calls', async (req, res) => {
+  const { startDate, endDate, status } = req.query;
+  const filter = `CallStatus=${status} and ActualLogDate ge ${startDate} and ActualLogDate le ${endDate}`;
+  const url = `https://fhnhs.alembacloud.com/Production/alemba.api/api/v2/call?$select=ActionCount,ActionWorkHours,ActualFinishTime,ActualLogDate,AssignedGroup.Name,AssignedToGroupChangesCount,BusinessService.Name&$filter=${encodeURIComponent(filter)}`;
+});
+
+// Inistialises the server and listens on specified port
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
