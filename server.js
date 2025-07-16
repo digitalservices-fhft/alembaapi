@@ -2,6 +2,10 @@ const express = require('express');
 const https = require('https');
 const qs = require('querystring');
 const path = require('path');
+const fs = require('fs');
+const { parse } = require('url');
+const { JSDOM } = require('jsdom';
+const xmlbuilder = require('xmlbuilder');
 const app = express();
 const axios = require('axios');
 const PORT = process.env.PORT || 3000;
@@ -264,10 +268,72 @@ app.post('/make-call', (req, res) => {
 
 // Dashboard Application API Calls
 
-app.get('/api/calls', async (req, res) => {
-  const { startDate, endDate, status } = req.query;
-  const filter = `CallStatus=${status} and ActualLogDate ge ${startDate} and ActualLogDate le ${endDate}`;
-  const url = `https://fhnhs.alembacloud.com/Production/alemba.api/api/v2/call?$select=ActionCount,ActionWorkHours,ActualFinishTime,ActualLogDate,AssignedGroup.Name,AssignedToGroupChangesCount,BusinessService.Name&$filter=${encodeURIComponent(filter)}`;
+app.get('/api/dashboard-data', async (req, res) => {
+  const { status = '', group = '' } = req.query;
+  const now = Date.now();
+
+  if (!access_token || now >= token_expiry) {
+    return res.status(401).send('Access token expired or missing. Please refresh the page.');
+  }
+
+  const filter = [];
+  if (status) filter.push(`CallStatus in (${status})`);
+  if (group) filter.push(`ResolvedByGroup in (${group})`);
+  const filterString = filter.join(' and ');
+
+  const options = {
+    method: 'GET',
+    hostname: 'fhnhs.alembacloud.com',
+    path: `/Production/alemba.api/api/v2/call?$select=ResolvedDate&$filter=${encodeURIComponent(filterString)}`,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${access_token}`
+    },
+    maxRedirects: 20
+  };
+
+  const apiReq = https.request(options, (apiRes) => {
+    let chunks = [];
+    apiRes.on('data', (chunk) => chunks.push(chunk));
+    apiRes.on('end', () => {
+      const body = Buffer.concat(chunks).toString();
+      try {
+        const data = JSON.parse(body);
+        const monthlyCounts = {};
+
+        data.forEach(item => {
+          if (item.ResolvedDate) {
+            const date = new Date(item.ResolvedDate);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
+          }
+        });
+
+        const xml = xmlbuilder.create('ResolvedCalls');
+        Object.entries(monthlyCounts).forEach(([month, count]) => {
+          const entry = xml.ele('Month');
+          entry.ele('Date', month);
+          entry.ele('Count', count);
+        });
+
+        const xmlString = xml.end({ pretty: true });
+        const filePath = path.join(__dirname, 'public', 'data', 'resolved_calls.xml');
+
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, xmlString, 'utf8');
+
+        res.sendFile(filePath);
+      } catch (err) {
+        res.status(500).send('Failed to process API response');
+      }
+    });
+  });
+
+  apiReq.on('error', (e) => {
+    res.status(500).send('Error fetching dashboard data: ' + e.message);
+  });
+
+  apiReq.end();
 });
 
 // Inistialises the server and listens on specified port
