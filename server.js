@@ -17,6 +17,10 @@ app.use(express.json());
 let access_token = '';
 let token_expiry = 0;
 
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
 app.get('/get-token', (req, res) => {
   const now = Date.now();
   if (access_token && now < token_expiry) {

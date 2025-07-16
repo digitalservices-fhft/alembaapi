@@ -1,0 +1,54 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+  <title>Call Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2head">
+<body class="hold-transition sidebar-mini">
+<div class="wrapper">
+  <section class="content">
+    <div class="container-fluid">
+      <h3>Call Dashboard</h3>
+      <form id="filterForm">
+        <input type="date" name="startDate" required>
+        <input type="date" name="endDate" required>
+        <select name="status">
+          <option value="1">Open</option>
+          <option value="2">Closed</option>
+        </select>
+        <button type="submit">Filter</button>
+      </form>
+      <canvas id="callChart"></canvas>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net"></script>
+<script>
+  document.getElementById('filterForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const params = new URLSearchParams(form).toString();
+    const res = await fetch(`/api/calls?${params}`);
+    const data = await res.json();
+    const labels = data.map(d => d.ActualLogDate);
+    const hours = data.map(d => d.ActionWorkHours);
+
+    new Chart(document.getElementById('callChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Work Hours',
+          data: hours,
+          backgroundColor: 'rgba(60,141,188,0.9)'
+        }]
+      }
+    });
+  });
+</script>
+</body>
+</html>

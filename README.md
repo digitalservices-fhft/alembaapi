@@ -2,6 +2,8 @@
 
 NODE.JS Application - Based on URL parameters will perform verious calls to the Alemba API
 
+Use /dashboard for reporting dashboard 
+
 **Set the codeType**
 
 | Parameter Name  | Purpose |
