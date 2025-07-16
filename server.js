@@ -4,7 +4,6 @@ const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
 const { parse } = require('url');
-const { JSDOM } = require('jsdom';
 const xmlbuilder = require('xmlbuilder');
 const app = express();
 const axios = require('axios');
