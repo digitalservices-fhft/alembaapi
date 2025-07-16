@@ -1,3 +1,5 @@
+let chartInstance = null;
+
 $(document).ready(function () {
   const callStatusMap = {
     0: "New", 1: "Resolved", 2: "Assigned", 3: "In Progress", 4: "Awaiting Information",
@@ -44,31 +46,62 @@ $(document).ready(function () {
     const status = $('#callStatus').val() || [];
     const group = $('#resolvingGroup').val() || [];
 
-    const res = await fetch(`/api/dashboard-data?status=${status.join(',')}&group=${group.join(',')}`);
-    const xmlText = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(xmlText, "application/xml");
+    $('#progressBar').show();
 
-    const labels = [];
-    const counts = [];
-
-    xml.querySelectorAll("Month").forEach(month => {
-      labels.push(month.querySelector("Date").textContent);
-      counts.push(parseInt(month.querySelector("Count").textContent));
-    });
-
-    new Chart(document.getElementById('resolvedChart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Resolved Calls by Month',
-          data: counts,
-          borderColor: '#007bff',
-          fill: false,
-          tension: 0.3
-        }]
+    try {
+      const tokenRes = await fetch('/get-token');
+      if (!tokenRes.ok) {
+        throw new Error('Failed to retrieve token');
       }
-    });
+
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) {
+        throw new Error('Token missing in response');
+      }
+
+      const res = await fetch(`/api/dashboard-data?status=${status.join(',')}&group=${group.join(',')}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Session expired or unauthorized. Please refresh the page.');
+        } else {
+          throw new Error('Failed to load dashboard data');
+        }
+      }
+
+      const xmlText = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, "application/xml");
+
+      const labels = [];
+      const counts = [];
+
+      xml.querySelectorAll("Month").forEach(month => {
+        labels.push(month.querySelector("Date").textContent);
+        counts.push(parseInt(month.querySelector("Count").textContent));
+      });
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(document.getElementById('resolvedChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Resolved Calls by Month',
+            data: counts,
+            borderColor: '#007bff',
+            fill: false,
+            tension: 0.3
+          }]
+        }
+      });
+    } catch (err) {
+      console.error("Dashboard error:", err);
+      alert("Error: " + err.message);
+    } finally {
+      $('#progressBar').hide();
+    }
   });
 });
