@@ -81,7 +81,15 @@ pre#responseOutput {
   display: none;
 }
 
-#stockFields input[type="text"] {
+#stockFields input[type="number"] {
+  background-color: #f1f1f1;
+}
+
+#infFields {
+  display: none;
+}
+
+#infFields input[type="text"] {
   background-color: #f1f1f1;
 }
 
