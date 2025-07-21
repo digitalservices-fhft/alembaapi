@@ -32,12 +32,16 @@ function getParam(param, defaultValue = null) {
   return params.has(param) ? params.get(param) : defaultValue;
 }
 
-// Sets up the UI based on the codeType parameter (call, stock, inf)
+// Sets up the UI based on the codeType parameter (titel, call, stock, inf)
 function setupUI() {
   const codeType = getParam('codeType', 'call');
   const boardTitle = getParam('title');
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
+  const boardTitle = getParam('title');
+      if (boardTitle) {
+        $('h1.mb-4').text(boardTitle);
+      }
 
   // Display image based on title keyword match
   if (boardTitle && imageContainer) {
