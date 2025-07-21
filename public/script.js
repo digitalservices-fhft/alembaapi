@@ -163,6 +163,7 @@ async function submitStock() {
 // Submits a general call using query parameters
 async function submitCall() {
   const urlParams = new URLSearchParams(window.location.search);
+  urlParams.append('Login_Token', accessToken); 
   const url = `/make-call?${urlParams.toString()}`;
 
   showProgressBar();
