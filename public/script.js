@@ -60,8 +60,9 @@ $(document).ready(function () {
     // (Stock handling code unchanged...)
 
     $btn.click(function () {
-        if (codeType === 'inf') {
-            const description = $('#descriptionInput').val();
+        const description = $('#descriptionInput').val();
+      if (codeType === 'inf') {
+            
             const imageFile = $('#imageInput')[0].files[0];
 
             // Build query string from URL parameters
