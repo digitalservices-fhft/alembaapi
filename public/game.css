@@ -1,0 +1,55 @@
+body {
+  background: #222;
+  color: #fff;
+  font-family: monospace, Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+h1 {
+  margin: 8px 0 4px 0;
+  font-size: 1.25rem;
+}
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+canvas {
+  background: #aee6f6;
+  margin-top: 8px;
+  border: 4px solid #333;
+  image-rendering: pixelated;
+}
+.controls {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+button {
+  font-size: 2rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: 2px solid #666;
+  background: #444;
+  color: #fff;
+  box-shadow: 0 2px #222;
+  user-select: none;
+  touch-action: manipulation;
+}
+button:active {
+  background: #222;
+}
+@media (max-width: 600px) {
+  canvas {
+    width: 94vw;
+    height: 35vh;
+  }
+  .controls button {
+    width: 22vw;
+    height: 8vh;
+    font-size: 1.8rem;
+  }
+}
