@@ -125,18 +125,19 @@ async function submitInfo() {
 
   hideProgressBar();
 
+  const result = await res.json();
   if (res.ok) {
-    const result = await res.json();
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error', 'danger');
+    throw new Error(result.message || 'Unknown error');
   }
 }
 // Submits a stock update request
 async function submitStock() {
   const quantity = document.getElementById('quantityInput').value;
   const urlParams = new URLSearchParams(window.location.search);
+  urlParams.append('Login_Token', accessToken);
   const url = `/make-call?${urlParams.toString()}`;
 
   const payload = { quantity };
@@ -153,17 +154,23 @@ async function submitStock() {
 
   hideProgressBar();
 
-  const result = await res.json();
+  const text = await res.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    throw new Error(text || 'Unknown error');
+  }
   if (res.ok) {
     showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error','danger');
+    throw new Error(result.message || 'Unknown error');
   }
 }
 // Submits a general call using query parameters
 async function submitCall() {
   const urlParams = new URLSearchParams(window.location.search);
-  urlParams.append('Login_Token', accessToken); 
+  urlParams.append('Login_Token', accessToken);
   const url = `/make-call?${urlParams.toString()}`;
 
   showProgressBar();
@@ -174,11 +181,17 @@ async function submitCall() {
 
   hideProgressBar();
 
-  const result = await res.json();
+  const text = await res.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    throw new Error(text || 'Unknown error');
+  }
   if (res.ok) {
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error','danger');
+    throw new Error(result.message || 'Unknown error');
   }
 }
 // Shows a Bootstrap progress bar in the response output
