@@ -3,15 +3,12 @@ const https = require('https');
 const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
-const { parse } = require('url');
 const xmlbuilder = require('xmlbuilder');
 const app = express();
 const axios = require('axios');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-
 const PORT = process.env.PORT || 3000;
-
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
 const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
 const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
@@ -23,20 +20,18 @@ app.use(express.urlencoded({ extended: true }));
 let access_token = '';
 let token_expiry = 0;
 
-// Reporting Dashboard Application redirect 
+// Serve dashboard
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Get Auth token, required for all applications
+// Auth token endpoint
 app.get('/get-token', (req, res) => {
   const now = Date.now();
   if (access_token && now < token_expiry) {
     res.set('Cache-Control', 'private, max-age=300');
     return res.json({ access_token });
   }
-
-//Use environment variables for Login details, required for all applications
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -44,7 +39,6 @@ app.get('/get-token', (req, res) => {
     username: API_USERNAME,
     password: API_PASSWORD
   });
-
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
@@ -55,7 +49,6 @@ app.get('/get-token', (req, res) => {
     },
     maxRedirects: 20
   };
-
   const request = https.request(options, (response) => {
     let chunks = [];
     response.on('data', (chunk) => chunks.push(chunk));
@@ -76,47 +69,35 @@ app.get('/get-token', (req, res) => {
       }
     });
   });
-
   request.on('error', (e) => {
     res.status(500).send('Error requesting token: ' + e.message);
   });
-
   request.write(postData);
   request.end();
 });
 
-// Creates the Alemba call or inventory transaction for the QR Code application
+// Main API endpoint for calls
 app.post('/make-call', upload.single('attachment'), async (req, res) => {
-  
   const now = Date.now();
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
 
-  if (!access_token) {
-    return res.status(401).send('No access token. Please authenticate first.');
-  }
+  // For codeType=inf, all params except description from query string
+  const codeType = req.query.codeType || req.body.codeType;
 
-  const {
-    codeType,
-    receivingGroup,
-    customString1,
-    configurationItemId,
-    type,
-    impact,
-    urgency,
-    description,
-    purchase,
-    transactionStatus,
-    quantity
-  } = req.body;
-
-  
   if (codeType === 'inf') {
+    const receivingGroup      = req.query.receivingGroup;
+    const customString1       = req.query.customString1;
+    const configurationItemId = req.query.configurationItemId;
+    const type                = req.query.type;
+    const impact              = req.query.impact;
+    const urgency             = req.query.urgency;
+    const description         = req.body.description;
+
     if (!impact || !urgency || !customString1 || !description) {
       return res.status(400).send('Missing required parameters for inf call');
     }
-
     const callPayload = {
       Description: description,
       DescriptionHtml: `<p>${description}</p>`,
@@ -127,6 +108,9 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       CustomString1: customString1,
       User: 34419
     };
+    if (receivingGroup)      callPayload.ReceivingGroup      = parseInt(receivingGroup, 10);
+    if (type)                callPayload.Type                = parseInt(type, 10);
+    if (configurationItemId) callPayload.ConfigurationItemId = parseInt(configurationItemId, 10);
 
     try {
       const createRes = await axios.post(
@@ -139,7 +123,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           }
         }
       );
-
       const callRef = createRes.data.Ref;
       if (!callRef) return res.status(500).send('Call created but no Ref returned.');
 
@@ -149,6 +132,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         { headers: { 'Authorization': `Bearer ${access_token}` } }
       );
 
+      // Handle attachment if present
       if (req.file) {
         const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
         const fileContent = fs.readFileSync(req.file.path);
@@ -157,7 +141,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           fileContent,
           Buffer.from(`\r\n--${boundary}--\r\n`)
         ]);
-
         await new Promise((resolve, reject) => {
           const reqUpload = https.request({
             method: 'POST',
@@ -172,7 +155,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
             resUpload.on('data', () => {});
             resUpload.on('end', resolve);
           });
-
           reqUpload.on('error', reject);
           reqUpload.write(payload);
           reqUpload.end();
@@ -184,16 +166,20 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       console.error(err);
       return res.status(500).send('Failed to create or submit inf call');
     }
-  }
 
-if (codeType === 'stock') {
+  } else if (codeType === 'stock') {
+    // Handle stock codeType, unchanged
+    const {
+      purchase,
+      transactionStatus,
+      quantity
+    } = req.body;
     const stockPayload = {
       Person: 34419,
       Purchase: parseInt(purchase, 10),
       Quantity: parseInt(quantity, 10),
       TransactionStatus: parseInt(transactionStatus, 10)
     };
-
     const options = {
       method: 'POST',
       hostname: 'fhnhs.alembacloud.com',
@@ -204,7 +190,6 @@ if (codeType === 'stock') {
       },
       maxRedirects: 20
     };
-
     const reqStock = https.request(options, (resStock) => {
       let chunks = [];
       resStock.on('data', (chunk) => chunks.push(chunk));
@@ -220,17 +205,13 @@ if (codeType === 'stock') {
         if (!ref) {
           return res.status(500).send('No Ref returned from inventory allocation');
         }
-
         const submitOptions = {
           method: 'PUT',
           hostname: 'fhnhs.alembacloud.com',
           path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          },
+          headers: { 'Authorization': `Bearer ${access_token}` },
           maxRedirects: 20
         };
-
         const submitReq = https.request(submitOptions, (submitRes) => {
           let submitChunks = [];
           submitRes.on('data', (chunk) => submitChunks.push(chunk));
@@ -243,26 +224,32 @@ if (codeType === 'stock') {
             });
           });
         });
-
         submitReq.on('error', (e) => {
           res.status(500).send('Error submitting inventory allocation: ' + e.message);
         });
-
         submitReq.end();
       });
     });
-
     reqStock.on('error', (e) => {
       res.status(500).send('Error creating inventory allocation: ' + e.message);
     });
-
     reqStock.write(JSON.stringify(stockPayload));
     reqStock.end();
+
   } else {
+    // Default: all fields expected in body
+    const {
+      receivingGroup,
+      customString1,
+      configurationItemId,
+      type,
+      impact,
+      urgency,
+      description
+    } = req.body;
     if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
       return res.status(400).send('Missing required parameters for call creation');
     }
-
     const callPayload = {
       Description: description,
       DescriptionHtml: `<p>${description}</p>`,
@@ -276,7 +263,6 @@ if (codeType === 'stock') {
       ConfigurationItemId: parseInt(configurationItemId, 10),
       User: 34419
     };
-
     const options = {
       method: 'POST',
       hostname: 'fhnhs.alembacloud.com',
@@ -287,7 +273,6 @@ if (codeType === 'stock') {
       },
       maxRedirects: 20
     };
-
     const callReq = https.request(options, (callRes) => {
       let chunks = [];
       callRes.on('data', (chunk) => chunks.push(chunk));
@@ -303,17 +288,13 @@ if (codeType === 'stock') {
         if (!ref) {
           return res.status(500).send('Call created but no Ref returned. Response: ' + body);
         }
-
         const submitOptions = {
           method: 'PUT',
           hostname: 'fhnhs.alembacloud.com',
           path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          },
+          headers: { 'Authorization': `Bearer ${access_token}` },
           maxRedirects: 20
         };
-
         const submitReq = https.request(submitOptions, (submitRes) => {
           let submitChunks = [];
           submitRes.on('data', (chunk) => submitChunks.push(chunk));
@@ -326,39 +307,31 @@ if (codeType === 'stock') {
             });
           });
         });
-
         submitReq.on('error', (e) => {
           res.status(500).send('Error submitting call: ' + e.message);
         });
-
         submitReq.end();
       });
     });
-
     callReq.on('error', (e) => {
       res.status(500).send('Error creating call: ' + e.message);
     });
-
     callReq.write(JSON.stringify(callPayload));
     callReq.end();
   }
 });
 
-// Dashboard Application API Calls
-
+// Dashboard data (unchanged)
 app.get('/api/dashboard-data', async (req, res) => {
   const { status = '', group = '' } = req.query;
   const now = Date.now();
-
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
-
   const filter = [];
   if (status) filter.push(`CallStatus in (${status})`);
   if (group) filter.push(`ResolvedByGroup in (${group})`);
   const filterString = filter.join(' and ');
-
   const options = {
     method: 'GET',
     hostname: 'fhnhs.alembacloud.com',
@@ -369,7 +342,6 @@ app.get('/api/dashboard-data', async (req, res) => {
     },
     maxRedirects: 20
   };
-
   const apiReq = https.request(options, (apiRes) => {
     let chunks = [];
     apiRes.on('data', (chunk) => chunks.push(chunk));
@@ -378,7 +350,6 @@ app.get('/api/dashboard-data', async (req, res) => {
       try {
         const data = JSON.parse(body);
         const monthlyCounts = {};
-
         data.forEach(item => {
           if (item.ResolvedDate) {
             const date = new Date(item.ResolvedDate);
@@ -386,35 +357,29 @@ app.get('/api/dashboard-data', async (req, res) => {
             monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
           }
         });
-
         const xml = xmlbuilder.create('ResolvedCalls');
         Object.entries(monthlyCounts).forEach(([month, count]) => {
           const entry = xml.ele('Month');
           entry.ele('Date', month);
           entry.ele('Count', count);
         });
-
         const xmlString = xml.end({ pretty: true });
         const filePath = path.join(__dirname, 'public', 'data', 'resolved_calls.xml');
-
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, xmlString, 'utf8');
-
         res.sendFile(filePath);
       } catch (err) {
         res.status(500).send('Failed to process API response');
       }
     });
   });
-
   apiReq.on('error', (e) => {
-    res.status(500).send('Error fetching dashboard data: ' + e.message);
+    res.status(500).send('Error fetching dashboard  ' + e.message);
   });
-
   apiReq.end();
 });
 
-// Inistialises the server and listens on specified port
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
