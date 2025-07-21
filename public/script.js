@@ -189,4 +189,3 @@ $.ajax({
     $('#responseOutput').text(errorMsg);
   }
 });
-});
