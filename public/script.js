@@ -39,9 +39,10 @@ function setupUI() {
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
-      if (boardTitle) {
-        $('h1.mb-4').text(boardTitle);
-      }
+  if (boardTitle) {
+  const heading = document.querySelector('h1.mb-4');
+  if (heading) heading.textContent = boardTitle;
+}
 
   // Display image based on title keyword match
   if (boardTitle && imageContainer) {
