@@ -163,27 +163,32 @@ $(document).ready(function () {
         urgency,
         description
       };
-      refreshTokenAndRetry(payload,
-        function (response) {
-          $('#responseOutput').show();
-          if (response.callRef) {
-            $btn.hide();
-            $('#responseOutput').html(
-              'Call created and submitted successfully. Reference: <strong>' + response.callRef + '</strong>'
-            );
-          } else {
-            $('#responseOutput').text('API call succeeded but no call reference returned.');
-          }
-        },
-        function (xhr) {
-          $('#responseOutput').show();
-          let errorMsg = 'API call failed.';
-          if (xhr.responseText) {
-            errorMsg += ' ' + xhr.responseText;
-          }
-          $('#responseOutput').text(errorMsg);
-        }
+      
+$.ajax({
+  url: '/make-call',
+  method: 'POST',
+  contentType: 'application/json',
+  data: JSON.stringify(payload),
+  success: function (response) {
+    $('#responseOutput').show();
+    if (response.callRef) {
+      $btn.hide();
+      $('#responseOutput').html(
+        'Call created and submitted successfully. Reference: <strong>' + response.callRef + '</strong>'
       );
+    } else {
+      $('#responseOutput').text('API call succeeded but no call reference returned.');
+    }
+  },
+  error: function (xhr) {
+    $('#responseOutput').show();
+    let errorMsg = 'API call failed.';
+    if (xhr.responseText) {
+      errorMsg += ' ' + xhr.responseText;
+    }
+    $('#responseOutput').text(errorMsg);
+  }
+
     }
   });
 });
