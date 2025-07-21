@@ -125,12 +125,12 @@ async function submitInfo() {
 
   hideProgressBar();
 
-  const result = await res.json();
   if (res.ok) {
+    const result = await res.json();
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error', 'danger');
   }
 }
 // Submits a stock update request
@@ -157,7 +157,7 @@ async function submitStock() {
   if (res.ok) {
     showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error','danger');
   }
 }
 // Submits a general call using query parameters
@@ -177,7 +177,7 @@ async function submitCall() {
   if (res.ok) {
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error','danger');
   }
 }
 // Shows a Bootstrap progress bar in the response output
