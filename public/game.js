@@ -16,6 +16,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#101018"; ctx.lineWidth = 2;
       ctx.strokeRect(x+12,y+8,24,24);
       ctx.strokeRect(x+14,y+34,20,22);
+      speechBubbles: [
+      "What are people thinking!",
+      "I cant stop working!",
+      "I am grumpy!"
+    ]
     }
   },
   { // Chris
@@ -35,6 +40,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#102030"; ctx.lineWidth = 2;
       ctx.strokeRect(x+12,y+8,24,26);
       ctx.strokeRect(x+14,y+34,20,22);
+      speechBubbles: [
+      "Lets Swarm!",
+      "Agggh I quit!",
+      "I have had an idea!"
+    ]
     }
   },
   { // Jon
@@ -52,6 +62,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#1d1231"; ctx.lineWidth = 2;
       ctx.strokeRect(x+12,y+10,24,24);
       ctx.strokeRect(x+14,y+34,20,22);
+      speechBubbles: [
+      "I am on it boss!",
+      "Wheres my car!",
+      "I love Star Trek!"
+    ]
     }
   },
   { // Emma
@@ -70,6 +85,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#6b5631"; ctx.lineWidth = 2;
       ctx.strokeRect(x+14,y+10,20,26);
       ctx.strokeRect(x+16,y+34,16,24);
+      speechBubbles: [
+      "I have a masters!",
+      "Ey up me duck!",
+      "Chuffers out the way!"
+    ]
     }
   },
   { // Karen
@@ -88,6 +108,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#2b2331"; ctx.lineWidth = 2;
       ctx.strokeRect(x+13,y+10,22,26);
       ctx.strokeRect(x+16,y+36,16,24);
+      speechBubbles: [
+      "Lush!",
+      "I just need it sorted!",
+      "Just popping to ED!"
+    ]
     }
   },
   { // Maria
@@ -105,6 +130,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#47371f"; ctx.lineWidth = 2;
       ctx.strokeRect(x+13,y+10,22,26);
       ctx.strokeRect(x+14,y+34,16,24);
+      speechBubbles: [
+      "Malaka!",
+      "Chris, stop!",
+      "Opa!"
+    ]
     }
   },
   { // Rob
@@ -123,6 +153,11 @@ const CHARACTERS = [
       ctx.strokeStyle = "#27323d"; ctx.lineWidth = 2;
       ctx.strokeRect(x+13,y+10,22,18);
       ctx.strokeRect(x+13,y+35,22,24);
+      speechBubbles: [
+      "I know kung fu!",
+      "I need more people!",
+      "Wheres my coax cable!"
+    ]
     }
   }
 ];
@@ -440,12 +475,21 @@ function stepGame() {
   const playerAbove = player.vy > 0 && playerBottom > patientTop && player.y + 18 < patientTop;
 
   if (playerAbove && playerHoriz) {
-    // Kill patient
-    p.isDead = true;
-    // Optional: play effect/sound/score
-    player.vy = -4.6; // bounce up
-    continue;
-  }
+  p.isDead = true;
+  player.vy = -4.6;
+
+  // Select speech bubble from this character's list
+  const speechList = CHARACTERS[window.playerSpriteIndex].speechBubbles;
+  const text = speechList[Math.floor(Math.random() * speechList.length)];
+
+  speechBubble.active = true;
+  speechBubble.text = text;
+  speechBubble.x = player.x + player.width / 2;
+  speechBubble.y = player.y - 28;
+  speechBubble.timer = 40;
+
+  continue;
+}
 
   // Usual collision (not stomp): touching from the side or not falling onto them
   if (!p.isDead &&

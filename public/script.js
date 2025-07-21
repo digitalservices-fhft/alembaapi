@@ -30,6 +30,12 @@ function getParam(param, defaultValue = null) {
 }
 // Sets up the UI based on the codeType parameter (title, call, stock, inf)
 function setupUI() {
+  const validTypes = ['call', 'stock', 'inf'];
+  const codeType = getParam('codeType', 'call');
+  if (!validTypes.includes(codeType)) {
+    window.location.href = 'https://fhnhs.alembacloud.com/production/portal.aspx';
+    return;
+  }
   const codeType = getParam('codeType', 'call');
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
@@ -115,7 +121,8 @@ async function submitInfo() {
 
   const formData = new FormData();
   formData.append('description', description);
-  if (imageFile) formData.append('attachment', imageFile);
+  if (imageFile) formData.append('file', imageFile); // Correct field name for attachment
+
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
 

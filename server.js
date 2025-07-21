@@ -91,6 +91,11 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
   const codeType = req.query.codeType || req.body.codeType;
+  const validTypes = ['call', 'stock', 'inf'];
+  if (!validTypes.includes(codeType)) {
+    return res.redirect('https://fhnhs.alembacloud.com/production/portal.aspx');
+  }
+
 
  if (codeType === 'inf') {
     // -- "inf" mode: params from query string except description --
