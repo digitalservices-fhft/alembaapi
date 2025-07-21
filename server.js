@@ -21,6 +21,11 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// easteregg
+app.get('/easteregg', (req, res) => {
+  res.redirect('/game.html');
+});
+
 // Token cache
 let access_token = '';
 let token_expiry = 0;
@@ -71,7 +76,6 @@ app.get('/get-token', (req, res) => {
         res.status(500).send('Failed to parse token response');
       }
     });
-  });
 
   request.on('error', (e) => {
     res.status(500).send('Error requesting token: ' + e.message);
@@ -236,14 +240,11 @@ await axios.post(
               callRef: ref,
               submitResponse: submitBody
             });
-          });
-        });
         submitReq.on('error', (e) => {
           res.status(500).send('Error submitting inventory allocation: ' + e.message);
         });
         submitReq.end();
       });
-    });
     reqStock.on('error', (e) => {
       res.status(500).send('Error creating inventory allocation: ' + e.message);
     });
@@ -319,14 +320,11 @@ await axios.post(
               callRef: ref,
               submitResponse: submitBody
             });
-          });
-        });
         submitReq.on('error', (e) => {
           res.status(500).send('Error submitting call: ' + e.message);
         });
         submitReq.end();
       });
-    });
     callReq.on('error', (e) => {
       res.status(500).send('Error creating call: ' + e.message);
     });
