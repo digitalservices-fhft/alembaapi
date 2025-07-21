@@ -164,73 +164,84 @@ if (req.file) {
   });
 }
   else if (codeType === 'stock') {
-    // Handle stock codeType
-    const {
-      purchase,
-      transactionStatus,
-      quantity
-    } = req.body;
-    const stockPayload = {
-      Person: 34419,
-      Purchase: parseInt(purchase, 10),
-      Quantity: parseInt(quantity, 10),
-      TransactionStatus: parseInt(transactionStatus, 10)
-    };
-    const options = {
-      method: 'POST',
-      hostname: 'fhnhs.alembacloud.com',
-      path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${access_token}`
-      },
-      maxRedirects: 20
-    };
-    const reqStock = https.request(options, (resStock) => {
-      let chunks = [];
-      resStock.on('data', (chunk) => chunks.push(chunk));
-      resStock.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        let ref;
-        try {
-          const json = JSON.parse(body);
-          ref = json.Ref;
-        } catch (e) {
-          return res.status(500).send('Failed to parse inventory allocation response');
-        }
-        if (!ref) {
-          return res.status(500).send('No Ref returned from inventory allocation');
-        }
-        const submitOptions = {
-          method: 'PUT',
-          hostname: 'fhnhs.alembacloud.com',
-          path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
-          headers: { 'Authorization': `Bearer ${access_token}` },
-          maxRedirects: 20
-        };
-        const submitReq = https.request(submitOptions, (submitRes) => {
-          let submitChunks = [];
-          submitRes.on('data', (chunk) => submitChunks.push(chunk));
-          submitRes.on('end', () => {
-            const submitBody = Buffer.concat(submitChunks).toString();
-            res.send({
-              message: 'Inventory allocation created and submitted successfully',
-              callRef: ref,
-              submitResponse: submitBody
-            });
+  // Handle stock codeType
+  const {
+    purchase,
+    transactionStatus,
+    quantity
+  } = req.body;
+
+  const stockPayload = {
+    Person: 34419,
+    Purchase: parseInt(purchase, 10),
+    Quantity: parseInt(quantity, 10),
+    TransactionStatus: parseInt(transactionStatus, 10)
+  };
+
+  const options = {
+    method: 'POST',
+    hostname: 'fhnhs.alembacloud.com',
+    path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${access_token}`
+    },
+    maxRedirects: 20
+  };
+
+  const reqStock = https.request(options, (resStock) => {
+    let chunks = [];
+    resStock.on('data', (chunk) => chunks.push(chunk));
+    resStock.on('end', () => {
+      const body = Buffer.concat(chunks).toString();
+      let ref;
+      try {
+        const json = JSON.parse(body);
+        ref = json.Ref;
+      } catch (e) {
+        return res.status(500).send('Failed to parse inventory allocation response');
+      }
+
+      if (!ref) {
+        return res.status(500).send('No Ref returned from inventory allocation');
+      }
+
+      const submitOptions = {
+        method: 'PUT',
+        hostname: 'fhnhs.alembacloud.com',
+        path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
+        headers: { 'Authorization': `Bearer ${access_token}` },
+        maxRedirects: 20
+      };
+
+      const submitReq = https.request(submitOptions, (submitRes) => {
+        let submitChunks = [];
+        submitRes.on('data', (chunk) => submitChunks.push(chunk));
+        submitRes.on('end', () => {
+          const submitBody = Buffer.concat(submitChunks).toString();
+          res.send({
+            message: 'Inventory allocation created and submitted successfully',
+            callRef: ref,
+            submitResponse: submitBody
           });
         });
-        submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting inventory allocation: ' + e.message);
-        });
-        submitReq.end();
       });
+
+      submitReq.on('error', (e) => {
+        res.status(500).send('Error submitting inventory allocation: ' + e.message);
+      });
+
+      submitReq.end();
     });
-    reqStock.on('error', (e) => {
-      res.status(500).send('Error creating inventory allocation: ' + e.message);
-    });
-    reqStock.write(JSON.stringify(stockPayload));
-    reqStock.end();
+  });
+
+  reqStock.on('error', (e) => {
+    res.status(500).send('Error creating inventory allocation: ' + e.message);
+  });
+
+  reqStock.write(JSON.stringify(stockPayload));
+  reqStock.end();
+}
 
   } else {
     // Default: all fields expected in query
