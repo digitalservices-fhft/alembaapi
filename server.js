@@ -1,133 +1,111 @@
 const express = require('express');
-const path = require('path');
-const multer = require('multer');
+const https = require('https');
 const qs = require('querystring');
-const axios = require('axios'); // Use axios for all HTTP(S) requests
+const path = require('path');
+const fs = require('fs');
 const app = express();
-
-// File upload middleware (if needed in future endpoints)
+const FormData = require('form-data');
+const axios = require('axios');
+const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-
 const PORT = process.env.PORT || 3000;
 
-// Securely load sensitive credentials from environment at runtime
+// Environment variables for Render
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
 const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
 const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
 
-// Static files middleware: serve from public/ directory
+// Middleware
 app.use(express.static('public'));
-
-// JSON and URL-encoded parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Easter egg route: delivers a static HTML page
+// Route '/easteregg' to send game.html
 app.get('/easteregg', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'game.html'));
 });
 
-// In-memory token cache
+// Token cache
 let access_token = '';
 let token_expiry = 0;
 
-/**
- * Auth token endpoint required for all applications.
- * Uses axios for the outbound login request (OAuth grant).
- * Token is reused if not expired.
- */
-app.get('/get-token', async (req, res) => {
+// Auth token endpoint required for all applications
+app.get('/get-token', (req, res) => {
   const now = Date.now();
-
-  // Return cached token if still valid
   if (access_token && now < token_expiry) {
     res.set('Cache-Control', 'private, max-age=300');
     return res.json({ access_token });
   }
 
-  // Prepare OAuth login payload
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
     client_id: CLIENT_ID,
     username: API_USERNAME,
-    password: API_PASSWORD,
+    password: API_PASSWORD
   });
 
-  try {
-    // Request token with axios
-    const axiosRes = await axios.post(
-      'https://fhnhs.alembacloud.com/production/alemba.web/oauth/login',
-      postData,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+  const options = {
+    method: 'POST',
+    hostname: 'fhnhs.alembacloud.com',
+    path: '/production/alemba.web/oauth/login',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData)
+    },
+    maxRedirects: 20
+  };
+
+  const request = https.request(options, (response) => {
+    let chunks = [];
+    response.on('data', (chunk) => chunks.push(chunk));
+    response.on('end', () => {
+      const body = Buffer.concat(chunks).toString();
+      try {
+        const json = JSON.parse(body);
+        if (json.access_token) {
+          access_token = json.access_token;
+          token_expiry = Date.now() + (4.5 * 60 * 1000);
+          res.set('Cache-Control', 'private, max-age=300');
+          res.json({ access_token });
+        } else {
+          res.status(500).send('No access_token in response');
+        }
+      } catch (e) {
+        res.status(500).send('Failed to parse token response');
       }
-    );
+    });
+  });
 
-    const json = axiosRes.data;
-
-    if (json.access_token) {
-      access_token = json.access_token;
-      // Set token to expire in 4.5 minutes (server config allows 5 min)
-      token_expiry = Date.now() + 4.5 * 60 * 1000;
-      res.set('Cache-Control', 'private, max-age=300'); // Instruct browser to cache for 5 min
-      return res.json({ access_token });
-    } else {
-      res.status(500).send('No access_token in response');
-    }
-  } catch (error) {
-    // Surface error message if OAuth fails (e.g., network or credentials error)
-    res.status(500).send(
-      'Error requesting token: ' +
-        (error.response?.data
-          ? JSON.stringify(error.response.data)
-          : error.message)
-    );
-  }
+  request.on('error', (e) => {
+    res.status(500).send('Error requesting token: ' + e.message);
+  });
+  request.write(postData);
+  request.end();
 });
 
-/**
- * Main API endpoint for making calls to Alemba.
- * Handles "inf" codeType (Information or similar) ONLY.
- * All outbound requests use axios for consistency.
- * Assumes the frontend provides a valid access token.
- */
+// Main API endpoint for calls
 app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const now = Date.now();
-
-  // Check token validity
   if (!access_token || now >= token_expiry) {
-    return res
-      .status(401)
-      .send('Access token expired or missing. Please refresh the page.');
+    return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
-
-  // Get codeType from query or body
   const codeType = req.query.codeType || req.body.codeType;
 
-  if (codeType === 'inf') {
-    // Only supports "inf" mode in this snippet
-    // Get parameters from query string and request body
-    const {
-      receivingGroup,
-      customString1,
-      configurationItemId,
-      type,
-      impact,
-      urgency,
-    } = req.query;
+ if (codeType === 'inf') {
+    // -- "inf" mode: params from query string except description --
+    const receivingGroup = req.query.receivingGroup;
+    const customString1 = req.query.customString1;
+    const configurationItemId = req.query.configurationItemId;
+    const type = req.query.type;
+    const impact = req.query.impact;
+    const urgency = req.query.urgency;
     const description = req.body.description;
 
-    // Validate required parameters
     if (!impact || !urgency || !customString1 || !description) {
-      return res
-        .status(400)
-        .send('Missing required parameters for inf call');
+      return res.status(400).send('Missing required parameters for inf call');
     }
 
-    // Prepare the call object for Alemba API, ensuring numeric fields are sent as numbers
     const callPayload = {
       Description: description,
       DescriptionHtml: `<div>${description}</div>`,
@@ -139,65 +117,210 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       Type: parseInt(type, 10),
       CustomString1: customString1,
       ConfigurationItemId: parseInt(configurationItemId, 10),
-      User: 34419, // Adjust this to be dynamic if required
+      User: 34419
     };
 
     try {
-      // 1. Create the call (POST)
+      // 1. Create the Call
       const createCallUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`;
-
       const createRes = await axios.post(createCallUrl, callPayload, {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${access_token}`,
-        },
+          'Authorization': `Bearer ${access_token}`
+        }
       });
-
       const ref = createRes.data.Ref;
-
       if (!ref) {
-        return res
-          .status(500)
-          .send(
-            'Call created but no Ref returned. Response: ' +
-              JSON.stringify(createRes.data)
-          );
+        return res.status(500).send('Call created but no Ref returned. Response: ' + JSON.stringify(createRes.data));
       }
 
-      // 2. Submit the call (PUT)
+      // 2. If file uploaded, attach it to the call
+      if (req.file) {
+        const form = new FormData();
+        form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
+
+        await axios.post(
+          `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments?Login_Token=${access_token}`,
+          form,
+          {
+            headers: {
+              ...form.getHeaders(),
+              Authorization: `Bearer ${access_token}`,
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+          }
+        );
+        // Remove uploaded file from temp directory after upload
+        fs.unlink(req.file.path, () => {});
+      }
+
+      // 3. Submit the Call
       const submitUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`;
-      const submitRes = await axios.put(
-        submitUrl,
-        null,
+      const submitRes = await axios.put(submitUrl, null, {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        }
+      });
+
+      res.send({
+        message: 'Call created, attachment uploaded (if any), and submitted successfully',
+        callRef: ref,
+        submitResponse: submitRes.data
+      });
+      return;
+    } catch (e) {
+      res.status(500).send('Error in call creation and/or file upload/submission: ' +
+        (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+      return;
+    }
+  }
+  if (codeType === 'stock') {
+  // Handle stock codeType
+  const { purchase, transactionStatus, quantity } = req.body;
+
+    const stockPayload = {
+      Person: 34419,
+      Purchase: parseInt(purchase, 10),
+      Quantity: parseInt(quantity, 10),
+      TransactionStatus: parseInt(transactionStatus, 10)
+    };
+
+    const options = {
+      method: 'POST',
+      hostname: 'fhnhs.alembacloud.com',
+      path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${access_token}`
+      },
+      maxRedirects: 20
+    };
+
+    const reqStock = https.request(options, (resStock) => {
+      let chunks = [];
+      resStock.on('data', (chunk) => chunks.push(chunk));
+      resStock.on('end', () => {
+        const body = Buffer.concat(chunks).toString();
+        let ref;
+        try {
+          const json = JSON.parse(body);
+          ref = json.Ref;
+        } catch (e) {
+          return res.status(500).send('Failed to parse inventory allocation response');
+        }
+
+        if (!ref) {
+          return res.status(500).send('No Ref returned from inventory allocation');
+        }
+
+        const submitOptions = {
+          method: 'PUT',
+          hostname: 'fhnhs.alembacloud.com',
+          path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
+          headers: { 'Authorization': `Bearer ${access_token}` },
+          maxRedirects: 20
+        };
+
+        const submitReq = https.request(submitOptions, (submitRes) => {
+          let submitChunks = [];
+          submitRes.on('data', (chunk) => submitChunks.push(chunk));
+          submitRes.on('end', () => {
+            const submitBody = Buffer.concat(submitChunks).toString();
+            res.send({
+              message: 'Inventory allocation created and submitted successfully',
+              callRef: ref,
+              submitResponse: submitBody
+            });
+          });
+        });
+
+        submitReq.on('error', (e) => {
+          res.status(500).send('Error submitting inventory allocation: ' + e.message);
+        });
+
+        submitReq.end();
+      });
+    });
+
+    reqStock.on('error', (e) => {
+      res.status(500).send('Error creating inventory allocation: ' + e.message);
+    });
+
+    reqStock.write(JSON.stringify(stockPayload));
+    reqStock.end();
+
+   // Default: all fields expected in query
+  {
+    const {
+      receivingGroup,
+      customString1,
+      configurationItemId,
+      type,
+      impact,
+      urgency,
+      description
+    } = req.query;
+
+    if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
+      return res.status(400).send('Missing required parameters for call creation');
+    }
+
+    const callPayload = {
+      Description: description,
+      DescriptionHtml: `<p>${description}</p>`,
+      IpkStatus: 1,
+      IpkStream: 0,
+      Impact: parseInt(impact, 10),
+      Urgency: parseInt(urgency, 10),
+      ReceivingGroup: parseInt(receivingGroup, 10),
+      Type: parseInt(type, 10),
+      CustomString1: customString1,
+      ConfigurationItemId: parseInt(configurationItemId, 10),
+      User: 34419
+    };
+
+    try {
+      // 1. Create the call
+      const createRes = await axios.post(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
+        callPayload,
         {
           headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${access_token}`
+          }
         }
       );
+      const ref = createRes.data.Ref;
+      if (!ref) {
+        return res.status(500).send(
+          'Call created but no Ref returned. Response: ' + JSON.stringify(createRes.data)
+        );
+      }
 
-      // Respond with outcome and references
+      // 2. Submit the call
+      const submitRes = await axios.put(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
+        null,
+        { headers: { 'Authorization': `Bearer ${access_token}` } }
+      );
+
       res.send({
         message: 'Call created and submitted successfully',
         callRef: ref,
-        submitResponse: submitRes.data,
+        submitResponse: submitRes.data
       });
-    } catch (err) {
-      // Catch and format API or network errors for debugging
+    } catch (e) {
       res.status(500).send(
-        'Error in call creation/submission: ' +
-          (err.response?.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        'Error creating or submitting call: ' +
+        (e.response?.data ? JSON.stringify(e.response.data) : e.message)
       );
     }
-  } else {
-    // If unsupported codeType is provided, return 400
-    res.status(400).send('Unsupported codeType specified.');
   }
-});
+}); // CLOSE app.post('/make-call')
 
-// Start HTTP server
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

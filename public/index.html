@@ -26,8 +26,10 @@
           <textarea class="form-control" id="descriptionInput" rows="3"></textarea>
         </div>
         <div class="mb-3">
-          <label for="imageInput" class="form-label">Attach Image</label>
-          <input type="file" class="form-control" id="imageInput" accept="image/*" capture="environment">
+          <form method="post" enctype="multipart/form-data" action="/make-call">
+          <input type="file" name="attachment">
+          <button type="submit">Upload</button>
+          </form>
         </div>
       </div> <!-- End of inf code -->
       <!-- Stock code -->

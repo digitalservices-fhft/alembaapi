@@ -115,8 +115,7 @@ async function submitInfo() {
 
   const formData = new FormData();
   formData.append('description', description);
-  if (imageFile) formData.append('file', imageFile); // Correct field name for attachment
-
+  if (imageFile) formData.append('attachment', imageFile);
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
 
