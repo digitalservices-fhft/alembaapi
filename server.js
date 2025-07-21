@@ -318,8 +318,8 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       );
     }
   }
-}); // CLOSE app.post('/make-call')
 
+}); // Properly close app.post('/make-call')
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
