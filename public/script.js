@@ -27,7 +27,7 @@ $(document).ready(function () {
   }
 
   let accessToken = '';
-  var $btn = $('#callApiBtn');
+  const $btn = $('#callApiBtn');
   $('#responseOutput').hide();
   $btn.hide();
 
@@ -55,13 +55,11 @@ $(document).ready(function () {
   const customString1 = getParam('customString1');
   const configurationItemId = getParam('configurationItemId');
   const type = getParam('type');
-  const description = getParam('description');
   const impact = getParam('impact');
   const urgency = getParam('urgency');
   const purchase = getParam('purchase');
   const transactionStatus = getParam('transactionStatus');
 
-  // Set button text and show/hide relevant fields
   if (codeType === 'call') {
     $btn.text('Let us know!');
     $('#infFields').hide();
@@ -80,7 +78,6 @@ $(document).ready(function () {
     $('#stockFields').hide();
   }
 
-  // Image logic for stock codeType
   if (codeType === "stock") {
     const imageMap = {
       smartcard: "smartcardkeyboard.png",
@@ -114,8 +111,59 @@ $(document).ready(function () {
     }
   }
 
-  // Button click handler
   $btn.click(function () {
+    if (codeType === 'inf') {
+      const description = $('#descriptionInput').val();
+      const imageFile = $('#imageInput')[0].files[0];
+
+      if (!impact || !urgency || !customString1 || !description) {
+        $('#responseOutput').text('Missing required parameters for inf: impact, urgency, customString1, or description.');
+        $('#responseOutput').show();
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('codeType', 'inf');
+      formData.append('impact', impact);
+      formData.append('urgency', urgency);
+      formData.append('customString1', customString1);
+      formData.append('description', description);
+      if (imageFile) {
+        formData.append('attachment', imageFile);
+      }
+
+      $.ajax({
+        url: '/make-call',
+        method: 'POST',
+        processData: false,
+        contentType: false,
+        data: formData,
+        success: function (response) {
+          $('#responseOutput').show();
+          if (response.callRef) {
+            $btn.hide();
+            $('#responseOutput').html(
+              '<div class="alert alert-success"><center>Call created successfully. Reference: <b>' +
+              response.callRef +
+              '</b></center></div>'
+            );
+          } else {
+            $('#responseOutput').text('API call succeeded but no reference returned.');
+          }
+        },
+        error: function (xhr) {
+          $('#responseOutput').show();
+          let errorMsg = 'API call failed.';
+          if (xhr.responseText) {
+            errorMsg += ' ' + xhr.responseText;
+          }
+          $('#responseOutput').text(errorMsg);
+        }
+      });
+      return;
+    }
+
+    // Existing logic for stock and call
     if (codeType === 'stock') {
       const quantity = $('#quantityInput').val();
       if (!purchase || !transactionStatus || !quantity) {
@@ -169,12 +217,8 @@ $(document).ready(function () {
         urgency,
         description
       };
-      $.ajax({
-        url: '/make-call',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(payload),
-        success: function (response) {
+      refreshTokenAndRetry(payload,
+        function (response) {
           $('#responseOutput').show();
           if (response.callRef) {
             $btn.hide();
@@ -185,7 +229,7 @@ $(document).ready(function () {
             $('#responseOutput').text('API call succeeded but no call reference returned.');
           }
         },
-        error: function (xhr) {
+        function (xhr) {
           $('#responseOutput').show();
           let errorMsg = 'API call failed.';
           if (xhr.responseText) {
@@ -193,7 +237,7 @@ $(document).ready(function () {
           }
           $('#responseOutput').text(errorMsg);
         }
-      });
+      );
     }
   });
 });

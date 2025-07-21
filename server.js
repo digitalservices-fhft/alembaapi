@@ -3,12 +3,13 @@ const https = require('https');
 const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
 const { parse } = require('url');
 const xmlbuilder = require('xmlbuilder');
 const app = express();
 const axios = require('axios');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+
 const PORT = process.env.PORT || 3000;
 
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
@@ -17,6 +18,7 @@ const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
 
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 let access_token = '';
 let token_expiry = 0;
@@ -85,9 +87,14 @@ app.get('/get-token', (req, res) => {
 
 // Creates the Alemba call or inventory transaction for the QR Code application
 app.post('/make-call', upload.single('attachment'), async (req, res) => {
+  
   const now = Date.now();
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
+  }
+
+  if (!access_token) {
+    return res.status(401).send('No access token. Please authenticate first.');
   }
 
   const {
@@ -104,8 +111,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     quantity
   } = req.body;
 
-  const file = req.file;
-
+  
   if (codeType === 'inf') {
     if (!impact || !urgency || !customString1 || !description) {
       return res.status(400).send('Missing required parameters for inf call');
@@ -123,8 +129,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     };
 
     try {
-      // Create the call
-      const createResponse = await axios.post(
+      const createRes = await axios.post(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
         callPayload,
         {
@@ -135,36 +140,26 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         }
       );
 
-      const callRef = createResponse.data.Ref;
-      if (!callRef) {
-        return res.status(500).send('Call created but no Ref returned.');
-      }
+      const callRef = createRes.data.Ref;
+      if (!callRef) return res.status(500).send('Call created but no Ref returned.');
 
-      // Submit the call
       await axios.put(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/submit?Login_Token=${access_token}`,
         {},
-        {
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          }
-        }
+        { headers: { 'Authorization': `Bearer ${access_token}` } }
       );
 
-      // Upload attachment if present
-      if (file) {
-        const filePath = path.join(__dirname, file.path);
-        const fileContent = fs.readFileSync(filePath);
+      if (req.file) {
         const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
-
+        const fileContent = fs.readFileSync(req.file.path);
         const payload = Buffer.concat([
-          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.originalname}"\r\nContent-Type: ${file.mimetype}\r\n\r\n`),
+          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${req.file.originalname}"\r\nContent-Type: ${req.file.mimetype}\r\n\r\n`),
           fileContent,
           Buffer.from(`\r\n--${boundary}--\r\n`)
         ]);
 
         await new Promise((resolve, reject) => {
-          const options = {
+          const reqUpload = https.request({
             method: 'POST',
             hostname: 'fhnhs.alembacloud.com',
             path: `/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
@@ -173,31 +168,25 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
               'Authorization': `Bearer ${access_token}`,
               'Content-Length': payload.length
             }
-          };
-
-          const reqUpload = https.request(options, (resUpload) => {
-            let chunks = [];
-            resUpload.on('data', (chunk) => chunks.push(chunk));
-            resUpload.on('end', () => {
-              const body = Buffer.concat(chunks).toString();
-              resolve(body);
-            });
+          }, resUpload => {
+            resUpload.on('data', () => {});
+            resUpload.on('end', resolve);
           });
 
-          reqUpload.on('error', (e) => reject(e));
+          reqUpload.on('error', reject);
           reqUpload.write(payload);
           reqUpload.end();
         });
       }
 
-      res.send({ message: 'Call created and submitted successfully', callRef });
-    } catch (error) {
-      console.error('Error during inf call creation:', error.message);
-      res.status(500).send('Failed to create or submit inf call');
+      return res.send({ message: 'Call created and submitted successfully', callRef });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send('Failed to create or submit inf call');
     }
   }
 
-  if (codeType === 'stock') {
+if (codeType === 'stock') {
     const stockPayload = {
       Person: 34419,
       Purchase: parseInt(purchase, 10),
