@@ -1,14 +1,15 @@
+// Express server for file uploads and call handling with file cleanup
 const express = require('express');
 const https = require('https');
 const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
-const xmlbuilder = require('xmlbuilder');
 const app = express();
 const axios = require('axios');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const PORT = process.env.PORT || 3000;
+
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
 const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
 const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
@@ -32,6 +33,7 @@ app.get('/get-token', (req, res) => {
     res.set('Cache-Control', 'private, max-age=300');
     return res.json({ access_token });
   }
+
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -39,6 +41,7 @@ app.get('/get-token', (req, res) => {
     username: API_USERNAME,
     password: API_PASSWORD
   });
+
   const options = {
     method: 'POST',
     hostname: 'fhnhs.alembacloud.com',
@@ -49,6 +52,7 @@ app.get('/get-token', (req, res) => {
     },
     maxRedirects: 20
   };
+
   const request = https.request(options, (response) => {
     let chunks = [];
     response.on('data', (chunk) => chunks.push(chunk));
@@ -69,6 +73,7 @@ app.get('/get-token', (req, res) => {
       }
     });
   });
+
   request.on('error', (e) => {
     res.status(500).send('Error requesting token: ' + e.message);
   });
@@ -76,31 +81,29 @@ app.get('/get-token', (req, res) => {
   request.end();
 });
 
-// Main API endpoint for calls
+// Main API endpoint for calls -- modular + best practice structure
 app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const now = Date.now();
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
-
-  // For codeType=inf, all params except description from query string
   const codeType = req.query.codeType || req.body.codeType;
 
   if (codeType === 'inf') {
-    const receivingGroup      = req.query.receivingGroup;
-    const customString1       = req.query.customString1;
+    // -- "inf" mode: params from query string except description --
+    const receivingGroup = req.query.receivingGroup;
+    const customString1 = req.query.customString1;
     const configurationItemId = req.query.configurationItemId;
-    const type                = req.query.type;
-    const impact              = req.query.impact;
-    const urgency             = req.query.urgency;
-    const description         = req.body.description;
-
+    const type = req.query.type;
+    const impact = req.query.impact;
+    const urgency = req.query.urgency;
+    const description = req.body.description;
     if (!impact || !urgency || !customString1 || !description) {
       return res.status(400).send('Missing required parameters for inf call');
     }
     const callPayload = {
       Description: description,
-      DescriptionHtml: `<p>${description}</p>`,
+      DescriptionHtml: `<div>${description}</div>`,
       IpkStatus: 1,
       IpkStream: 0,
       Impact: parseInt(impact, 10),
@@ -108,11 +111,12 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       CustomString1: customString1,
       User: 34419
     };
-    if (receivingGroup)      callPayload.ReceivingGroup      = parseInt(receivingGroup, 10);
-    if (type)                callPayload.Type                = parseInt(type, 10);
+    if (receivingGroup)      callPayload.ReceivingGroup = parseInt(receivingGroup, 10);
+    if (type)                callPayload.Type = parseInt(type, 10);
     if (configurationItemId) callPayload.ConfigurationItemId = parseInt(configurationItemId, 10);
 
     try {
+      // Create the call
       const createRes = await axios.post(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
         callPayload,
@@ -126,6 +130,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       const callRef = createRes.data.Ref;
       if (!callRef) return res.status(500).send('Call created but no Ref returned.');
 
+      // Submit the call
       await axios.put(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/submit?Login_Token=${access_token}`,
         {},
@@ -141,6 +146,8 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           fileContent,
           Buffer.from(`\r\n--${boundary}--\r\n`)
         ]);
+
+        // POST attachment, then immediately clean up file after success
         await new Promise((resolve, reject) => {
           const reqUpload = https.request({
             method: 'POST',
@@ -159,15 +166,22 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           reqUpload.write(payload);
           reqUpload.end();
         });
+
+        // Immediately remove uploaded file from server disk (this was missing!)
+        fs.unlink(req.file.path, err => {
+          if (err) console.error('Failed to delete uploaded file:', err);
+        });
       }
 
       return res.send({ message: 'Call created and submitted successfully', callRef });
     } catch (err) {
       console.error(err);
+      // Clean up file on error as well
+      if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(500).send('Failed to create or submit inf call');
     }
-
-  } else if (codeType === 'stock') {
+  }
+  else if (codeType === 'stock') {
     // Handle stock codeType, unchanged
     const {
       purchase,
@@ -320,65 +334,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     callReq.end();
   }
 });
-
-// Dashboard data (unchanged)
-app.get('/api/dashboard-data', async (req, res) => {
-  const { status = '', group = '' } = req.query;
-  const now = Date.now();
-  if (!access_token || now >= token_expiry) {
-    return res.status(401).send('Access token expired or missing. Please refresh the page.');
-  }
-  const filter = [];
-  if (status) filter.push(`CallStatus in (${status})`);
-  if (group) filter.push(`ResolvedByGroup in (${group})`);
-  const filterString = filter.join(' and ');
-  const options = {
-    method: 'GET',
-    hostname: 'fhnhs.alembacloud.com',
-    path: `/Production/alemba.api/api/v2/call?$select=ResolvedDate&$filter=${encodeURIComponent(filterString)}`,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${access_token}`
-    },
-    maxRedirects: 20
-  };
-  const apiReq = https.request(options, (apiRes) => {
-    let chunks = [];
-    apiRes.on('data', (chunk) => chunks.push(chunk));
-    apiRes.on('end', () => {
-      const body = Buffer.concat(chunks).toString();
-      try {
-        const data = JSON.parse(body);
-        const monthlyCounts = {};
-        data.forEach(item => {
-          if (item.ResolvedDate) {
-            const date = new Date(item.ResolvedDate);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
-          }
-        });
-        const xml = xmlbuilder.create('ResolvedCalls');
-        Object.entries(monthlyCounts).forEach(([month, count]) => {
-          const entry = xml.ele('Month');
-          entry.ele('Date', month);
-          entry.ele('Count', count);
-        });
-        const xmlString = xml.end({ pretty: true });
-        const filePath = path.join(__dirname, 'public', 'data', 'resolved_calls.xml');
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, xmlString, 'utf8');
-        res.sendFile(filePath);
-      } catch (err) {
-        res.status(500).send('Failed to process API response');
-      }
-    });
-  });
-  apiReq.on('error', (e) => {
-    res.status(500).send('Error fetching dashboard  ' + e.message);
-  });
-  apiReq.end();
-});
-
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
