@@ -251,106 +251,398 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('characterSelect').style.display = "flex";
 });
 
-// ==== GAME CODE (simple demo platformer) ====
-// 16-bit-ish pixel style, super simple demo for selection
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-let w = canvas.width, h = canvas.height;
+const CHARACTERS = [
 
-let px = 160, py = 176, vx = 0, vy = 0;
-let onGround = true;
-
-function drawPlayer(px, py) {
-  // Draw as 16-bit sprite at px py
-  CHARACTERS[window.playerSpriteIndex].draw(px-24, py-56, ctx);
-}
-
-// Simple platforms for demo
-const platforms = [
-  {x:0,y:220,w:360,h:20},
-  {x:120,y:164,w:80,h:14},
-  {x:48,y:110,w:110,h:10},
-  {x:220,y:83,w:68,h:9}
-];
-
-// Controls (touch/mobile friendly)
-let keys = {left:false, right:false, up:false};
-function handleKey(e, val) {
-  if(e.code === 'ArrowLeft' || e.key === 'a') keys.left = val;
-  if(e.code === 'ArrowRight' || e.key === 'd') keys.right = val;
-  if(e.code === 'ArrowUp' || e.key === 'w' || e.code === 'Space') keys.up = val;
-}
-window.addEventListener('keydown', e => handleKey(e,true));
-window.addEventListener('keyup', e => handleKey(e,false));
-
-// Touch controls
-// Two big transparent buttons on each side for left/right, one for jump
-(function touchControlsSetup(){
-  let left = document.createElement('div');
-  let right = document.createElement('div');
-  let jump = document.createElement('div');
-  [left,right,jump].forEach(el=>{
-    el.style.position="absolute";
-    el.style.bottom="0";el.style.width="34vw";el.style.height="32vw";
-    el.style.opacity="0.05";el.style.zIndex=99;el.style.userSelect="none";
-    el.style.touchAction="none";
+// Preserved selection logic:
+let selectedChar = null;
+window.playerSpriteIndex = 0;
+document.addEventListener('DOMContentLoaded', function() {
+  const charList = document.getElementById('characterList');
+  CHARACTERS.forEach((char, idx) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = 'center';
+    const canvas = document.createElement('canvas');
+    canvas.width = 48; canvas.height = 64;
+    char.draw(0, 0, canvas.getContext('2d'));
+    canvas.title = char.name + " - " + char.desc;
+    canvas.tabIndex = 0;
+    canvas.setAttribute('role', 'button');
+    canvas.setAttribute('aria-label', char.name);
+    const nameLabel = document.createElement('div');
+    nameLabel.innerText = char.name; nameLabel.className = "name-label";
+    canvas.addEventListener('click', function() {
+      selectedChar = idx;
+      window.playerSpriteIndex = idx;
+      charList.querySelectorAll('canvas').forEach(c => c.classList.remove('selected'));
+      canvas.classList.add('selected');
+      document.getElementById('startGameBtn').disabled = false;
+    });
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault(); canvas.click();
+    }, {passive:false});
+    wrapper.appendChild(canvas);
+    wrapper.appendChild(nameLabel);
+    charList.appendChild(wrapper); 
   });
-  left.style.left="0";  right.style.right="0";
-  jump.style.left="35vw"; jump.style.width="30vw";
-  jump.style.bottom="32vw"; jump.style.height="16vw";
-  document.body.appendChild(left);
-  document.body.appendChild(right);
-  document.body.appendChild(jump);
-  left.addEventListener('touchstart', ()=>keys.left=true); left.addEventListener('touchend', ()=>keys.left=false); left.addEventListener('touchcancel',()=>keys.left=false);
-  right.addEventListener('touchstart', ()=>keys.right=true); right.addEventListener('touchend', ()=>keys.right=false); right.addEventListener('touchcancel',()=>keys.right=false);
-  jump.addEventListener('touchstart', ()=>keys.up=true);jump.addEventListener('touchend', ()=>keys.up=false);jump.addEventListener('touchcancel',()=>keys.up=false);
-})();
+  document.getElementById('startGameBtn').addEventListener('click', function() {
+    document.getElementById('characterSelect').style.display = 'none';
+    document.querySelector('.game-container').style.display = '';
+    window.playerSpriteIndex = selectedChar !== null ? selectedChar : 0;
+    startGame();
+  });
+  document.getElementById('startGameBtn').addEventListener('touchstart', (e) => {
+    e.preventDefault(); document.getElementById('startGameBtn').click();
+  }, {passive:false});
+  document.querySelector('.game-container').style.display = "none";
+  document.getElementById('characterSelect').style.display = "flex";
+});
 
-function gameLoop(){
-  // Physics
-  vx = (keys.left?-2.2:0)+(keys.right?2.2:0);
-  if(onGround && keys.up){ vy = -6; onGround=false; }
-  vy += 0.27; if(vy>5)vy=5;
-  px += vx; py += vy;
+// ============ GAMEPLAY STATE VARIABLES =============
+let canvas = document.getElementById('game');
+let ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+let state = "title"; // can be "title", "running", "gameover", "win", "boss"
 
-  // Platform collision
-  onGround = false;
-  for(const pf of platforms){
-    if(px+7>pf.x && px-7<pf.x+pf.w && py+8>pf.y && py<pf.y+pf.h){
-      py=pf.y-8; vy=0; onGround=true; keys.up=false;
+// Player state
+let player = {
+  x: W*0.18, y: H-68, vy: 0, width: 38, height: 56, grounded: true, anim: 0, dead: false
+};
+
+// Controls
+let input = {left: false, right: false, up: false};
+
+// Patients and boss
+let patients = [];
+let patientsPassed = 0;
+let spawnTimer = 0, spawnRate = 42;
+let bossAppeared = false;
+let fireworks = [];
+
+// =========== DRAWING FUNCTIONS (16-bit Style) ===============
+
+// Draw hospital background (SOR2-inspired)
+function drawHospitalBackground(scroll) {
+  ctx.save();
+  ctx.fillStyle = "#dbe6f1";
+  ctx.fillRect(0,0,W,H);
+  // Scrolling floor tiles
+  ctx.fillStyle = "#e8eaf2";
+  for(let i=0;i<W;i+=44) ctx.fillRect((i-(scroll%44)),H-36,36,9);
+  // Wall panels
+  for(let i=0;i<W; i+=118) {
+    ctx.fillStyle = "#bdc9d9";
+    ctx.fillRect((i-(scroll%118)),44,104,98);
+    ctx.strokeStyle = "#a6b3c4";
+    ctx.strokeRect((i-(scroll%118)),44,104,98);
+    ctx.fillStyle = "#ddf5f8";
+    ctx.fillRect((i-(scroll%118))+13,52,78,12); // light bar
+  }
+  // Hospital beds
+  for(let i=0;i<W;i+=88) {
+    ctx.fillStyle = "#b8bdc3";
+    ctx.fillRect((i-(scroll%88))+13,H-84,56,19);
+    ctx.fillStyle = "#e2ecf3";
+    ctx.fillRect((i-(scroll%88))+15,H-79,52,11);
+    ctx.strokeStyle = "#8b959c";
+    ctx.strokeRect((i-(scroll%88))+13,H-84,56,19);
+  }
+  // Random wheeled drip stand
+  ctx.fillStyle = "#888";
+  ctx.fillRect(W/1.2-(scroll%21), H-66, 6, 24);
+  ctx.strokeStyle = "#aaa6";
+  ctx.beginPath(); ctx.arc(W/1.2-(scroll%21)+3,H-42,6,0,2*Math.PI); ctx.stroke();
+  ctx.restore();
+}
+
+// Draw an ill patient (gown, palette, shuffle animation)
+function drawPatient(p) {
+  ctx.save();
+  let baseX = p.x, baseY = p.y;
+  // Body
+  ctx.fillStyle = "#d9efe9";
+  ctx.fillRect(baseX+5,baseY+20,26,35);
+  // Gown neckline
+  ctx.fillStyle="#b8e0cf";
+  ctx.fillRect(baseX+12,baseY+24,12,8);
+  // Head (sick green-grey)
+  ctx.fillStyle = "#c6d5b7";
+  ctx.beginPath(); ctx.ellipse(baseX+18,baseY+13,12,13,0,0,2*Math.PI); ctx.fill();
+  // Drooping eyes
+  ctx.fillStyle = "#324d39";
+  ctx.fillRect(baseX+12,baseY+16,3,3); ctx.fillRect(baseX+22,baseY+16,3,3);
+  // Sad mouth
+  ctx.fillStyle = "#666";
+  ctx.fillRect(baseX+15,baseY+24,6,3);
+  // IV Stand if any
+  if(p.iv){
+    ctx.strokeStyle="#99aed1";ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(baseX+30,baseY+24); ctx.lineTo(baseX+35,baseY+5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(baseX+35,baseY+5); ctx.lineTo(baseX+35,baseY+38); ctx.stroke();
+  }
+  // Shuffle (wiggle body side to side for animation)
+  if(Math.floor(p.t/12)%2===0)ctx.fillStyle="#b8e0cf";
+  else ctx.fillStyle="#c6d5b7";
+  ctx.fillRect(baseX+13,baseY+43,12,8);
+  // Gown shadow
+  ctx.fillStyle="#c0d0e0";ctx.fillRect(baseX+5,baseY+51,26,4);
+  ctx.restore();
+}
+
+// Draw ARRAN boss
+function drawBoss(arran) {
+  ctx.save();
+  let x=arran.x, y=arran.y;
+  // Suit body
+  ctx.fillStyle="#585c67";
+  ctx.fillRect(x+2,y+34,38,36);
+  // Beer belly
+  ctx.fillStyle="#b8a180";
+  ctx.beginPath();
+  ctx.ellipse(x+20,y+54,20,17,0,0,Math.PI,true); ctx.fill();
+  // Head
+  ctx.fillStyle="#e7cbad";
+  ctx.beginPath();
+  ctx.ellipse(x+22,y+15,17,20,0,0,2*Math.PI); ctx.fill();
+  // Stubble
+  ctx.fillStyle="#b39c73";
+  ctx.fillRect(x+13,y+29,16,5);
+  // Angy brow/eyes
+  ctx.fillStyle="#222"; ctx.fillRect(x+14,y+19,6,2); ctx.fillRect(x+27,y+19,6,2);
+  ctx.fillStyle="#6c3d22"; ctx.fillRect(x+19,y+25,10,4);
+  // Suit lapels
+  ctx.fillStyle="#ebeced";
+  ctx.fillRect(x+11,y+36,8,16); ctx.fillRect(x+31,y+36,8,16);
+  // Shirt & tie
+  ctx.fillStyle="#e3e2db"; ctx.fillRect(x+18,y+41,10,16);
+  ctx.fillStyle="#233468"; ctx.fillRect(x+22,y+44,4,12);
+  // Arms
+  ctx.fillStyle="#595c64"; ctx.fillRect(x-7,y+37,9,22); ctx.fillRect(x+38,y+37,9,22);
+  // Shoes
+  ctx.fillStyle = "#433423"; ctx.fillRect(x+3,y+68,13,6); ctx.fillRect(x+26,y+68,13,6);
+  ctx.restore();
+}
+
+// Draw player character
+function drawPlayerChar(x, y, anim) {
+  // Use original draw function but animate jump/walk bounce (SOR2 style)
+  let bounce = Math.abs(Math.sin(anim/7)*4)*(player.grounded?1:0.5);
+  CHARACTERS[window.playerSpriteIndex].draw(x-16, y-bounce-56, ctx);
+}
+
+// Fireworks for win state
+function drawFireworks() {
+  for(let f of fireworks) {
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.strokeStyle=f.color;
+    ctx.beginPath();
+    for(let i=0;i<12;++i){
+      let angle=i*Math.PI*2/12;
+      ctx.moveTo(f.x,f.y);
+      ctx.lineTo(f.x+Math.cos(angle)*f.radius, f.y+Math.sin(angle)*f.radius);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ========== INPUT HANDLING (TOUCH & SWIPE) ===========
+
+let lastTouchX = 0;
+function setupTouchControls() {
+  let startX=0, dx=0, moving=false;
+  canvas.addEventListener('touchstart', function(e){
+    if(e.touches.length===1){
+      lastTouchX=e.touches[0].pageX;
+      startX=lastTouchX;
+      moving=true;
+    }
+  },{passive:false});
+  canvas.addEventListener('touchmove', function(e){
+    if(!moving) return;
+    dx = e.touches[0].pageX - startX;
+    if(dx < -24){ input.left=true; input.right=false; } 
+    else if(dx > 24){ input.right=true; input.left=false; }
+    else { input.left=false; input.right=false; }
+  },{passive:false});
+  canvas.addEventListener('touchend', function(e){
+    if(moving){
+      input.left=false; input.right=false;dx=0;moving=false;
+    }
+  },{passive:false});
+  // Swipe up to jump
+  canvas.addEventListener('touchstart', function(e){
+    lastTouchX = e.touches[0].clientY;
+  },{passive:false});
+  canvas.addEventListener('touchend', function(e){
+    let dy = e.changedTouches[0].clientY - lastTouchX;
+    if(dy<-50) input.up=true;
+    setTimeout(()=>{input.up=false;},120);
+  },{passive:false});
+}
+setupTouchControls();
+window.addEventListener('keydown', e => {
+  if(e.key==='ArrowLeft'||e.key==='a') input.left=true;
+  if(e.key==='ArrowRight'||e.key==='d') input.right=true;
+  if(e.key==='ArrowUp'||e.key==='w'||e.key===' ')input.up=true;
+});
+window.addEventListener('keyup', e => {
+  if(e.key==='ArrowLeft'||e.key==='a') input.left=false;
+  if(e.key==='ArrowRight'||e.key==='d') input.right=false;
+  if(e.key==='ArrowUp'||e.key==='w'||e.key===' ')input.up=false;
+});
+
+// ============== GAMEPLAY CORE LOGIC ===============
+
+function resetGame() {
+  player.x = W*0.18;
+  player.y = H-68;
+  player.vy = 0; player.grounded=true;
+  patients = [];
+  patientsPassed = 0;
+  spawnTimer = 0;
+  bossAppeared = false;
+  fireworks = [];
+  state = "running";
+}
+
+function spawnPatient() {
+  let y=H-64;
+  let iv=Math.random()>0.65;
+  patients.push({
+    x: W+20+Math.random()*70, y, iv,
+    t: Math.floor(Math.random()*24)
+  });
+}
+function spawnBoss() {
+  // Boss (Arran) is always same y
+  patients = [];
+  bossAppeared = {x:W+5, y:H-90, vx:-2.4};
+}
+
+function stepGame() {
+  // --- player movement
+  let speed = 2.38;
+  if(input.left) player.x -= speed;
+  if(input.right) player.x += speed;
+  // Clamp position
+  player.x = Math.max(14, Math.min(W-42, player.x));
+  // Simple gravity (jumping)
+  if(player.grounded && input.up) { player.vy=-6.2; player.grounded=false; }
+  player.y += player.vy; player.vy+=0.32;
+  if(player.y>H-68){player.y=H-68;player.grounded=true;player.vy=0;}
+
+  // --- scrolling hospital
+  let scroll = Math.max(0,patientsPassed*14);
+
+  // --- patients and collision
+  if(!bossAppeared) {
+    spawnTimer++;
+    if(spawnTimer > spawnRate && patientsPassed<100){
+      if(patients.length<4) spawnPatient();
+      spawnTimer=0;
+    }
+    for(let p of patients) {
+      p.x -= 2.4; p.t++;
+      // Remove offscreen
+    }
+    patients = patients.filter(p => p.x > -40);
+    // Check player collision with patients
+    for(let p of patients) {
+      if(Math.abs(player.x-p.x)<28 && Math.abs(player.y-p.y)<40) {
+        gameOver();
+        return;
+      }
+      if(p.x+18<player.x && !p.passed) {
+        p.passed = true; patientsPassed++;
+      }
+    }
+    // Boss trigger
+    if(patientsPassed >= 100 && !bossAppeared) {
+      setTimeout(()=>{ showMessage("You must void Aaran",1200); setTimeout(spawnBoss,1200); },350);
+      bossAppeared=true;
+    }
+  } else if(bossAppeared && typeof bossAppeared=="object") {
+    // Arran boss logic
+    bossAppeared.x += bossAppeared.vx;
+    if(bossAppeared.x<player.x+8) bossAppeared.vx=2.7;
+    if(bossAppeared.x>W-48) bossAppeared.vx=-2.2;
+    // Collision:
+    if(Math.abs(player.x-bossAppeared.x)<32 && Math.abs(player.y-bossAppeared.y)<50) {
+      gameOver();
+      return;
+    }
+    // Victory if boss crossed
+    if(bossAppeared.x<10){
+      // WIN!
+      state="win";
+      for(let i=0;i<10;i++){
+        fireworks.push({x:60+Math.random()*360,y:80+Math.random()*80,radius:2,color:`hsl(${Math.random()*360},95%,70%)`,frames:48+Math.random()*32});
+      }
+      showMessage("Congratulations - you win!",4800);
+      setTimeout(resetAll,5200);
     }
   }
-  // Screen bounds
-  if(px<12)px=12;if(px>w-12)px=w-12;
-  if(py>220)py=220;
+}
 
-  // Draw background
-  ctx.fillStyle = "#2b3560";
-  ctx.fillRect(0,0,w,h);
+function gameOver() {
+  state = "gameover";
+  showMessage("Game - Over....\nBetter luck next time",2200);
+  setTimeout(resetAll,2500);
+}
+function resetAll() {
+  document.getElementById('characterSelect').style.display = "flex";
+  document.querySelector('.game-container').style.display = "none";
+  document.getElementById('messageOverlay').className='';
+  resetGame();
+}
 
-  // Background gradient
-  let grad = ctx.createLinearGradient(0,0,0,h);
-  grad.addColorStop(0,"#687de4");
-  grad.addColorStop(1,"#393b68");
-  ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+// ========== MESSAGING UI ==============
+function showMessage(msg, dur){
+  let overlay = document.getElementById('messageOverlay');
+  overlay.innerText=msg;
+  overlay.className="visible";
+  setTimeout(()=>{overlay.className='';}, dur||2000);
+}
 
-  // Draw platforms
-  platforms.forEach(pf=>{
-    ctx.fillStyle = "#756b9d";
-    ctx.fillRect(pf.x,pf.y,pf.w,pf.h);
-    ctx.strokeStyle = "#f0cb4a";
-    ctx.strokeRect(pf.x,pf.y,pf.w,pf.h);
-    // 16-bit highlight
-    ctx.fillStyle = "#e8e0bc"; ctx.fillRect(pf.x,pf.y,pf.w,3);
-  });
+// ========== GAME LOOP ==============
+let frame=0;
+function gameLoop() {
+  frame++;
+  // Background and hospital scene scroll
+  let scroll=Math.max(patientsPassed*14, (bossAppeared&&typeof bossAppeared=="object"?Math.max(0, (100*14)+W-bossAppeared.x):0));
+  drawHospitalBackground(scroll);
 
-  // Draw player
-  drawPlayer(px, py);
-
-  // Prompt
-  ctx.font = "bold 14px 'Press Start 2P', monospace";
-  ctx.fillStyle="#fff";
-  ctx.fillText("Arrows or Touch: Move  |  Jump",15,22);
+  if(state==="running") {
+    // Draw patients
+    for(let p of patients) drawPatient(p);
+    // Draw player
+    drawPlayerChar(player.x,player.y,frame);
+    // Patient count
+    ctx.font="16px monospace";ctx.fillStyle="#377988";
+    ctx.fillText(`Patients avoided: ${patientsPassed}`,W-264,34);
+    stepGame();
+  }
+  else if(state==="gameover") {
+    drawPlayerChar(player.x,player.y,frame);
+  }
+  else if(state==="win") {
+    fireworks.forEach(f=>{f.radius+=2;f.frames--;});
+    fireworks = fireworks.filter(f=>f.frames>0);
+    drawFireworks();
+  }
+  // Draw Boss
+  if(bossAppeared && typeof bossAppeared=="object") drawBoss(bossAppeared);
 
   requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+  resetGame();
+  document.getElementById('messageOverlay').className='';
+  state="running";
+  gameLoop();
 }

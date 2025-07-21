@@ -1,103 +1,54 @@
 body {
   background: linear-gradient(135deg, #4b558e, #21253c 70%, #241a36 100%);
   font-family: "Press Start 2P", monospace, Arial;
-  margin: 0;
-  color: #fff;
+  margin: 0; color: #fff;
 }
 #characterSelect {
-  position: fixed;
-  top:0; left:0; right:0; bottom:0;
-  z-index: 10;
-  background: rgba(20,24,42,0.97);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: rgba(20, 24, 42, 0.97);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 #characterSelect h2 {
-  font-size: 1.3rem;
-  color: #ffe148;
-  text-shadow: 2px 2px #492800;
+  font-size: 1.3rem; color: #ffe148; text-shadow: 2px 2px #492800;
 }
 #characterList {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 28px;
-  margin: 18px 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; margin: 18px 0;
 }
-#characterList > div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+#characterList > div { display: flex; flex-direction: column; align-items: center; }
 #characterList canvas {
-  border: 3px solid #313843;
-  background: #1a2330;
-  border-radius: 8px;
-  box-shadow: 0 0 12px #090a12;
-  transition: border 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  width: 48px;
-  height: 64px;
-  image-rendering: pixelated;
+  border: 3px solid #313843; background: #1a2330; border-radius: 8px; box-shadow: 0 0 12px #090a12;
+  transition: border 0.2s, box-shadow 0.2s; cursor: pointer;
+  width: 48px; height: 64px; image-rendering: pixelated;
 }
-#characterList canvas.selected {
-  border-color: #f6e159;
-  box-shadow: 0 0 12px #ffe171;
-}
+#characterList canvas.selected { border-color: #f6e159; box-shadow: 0 0 12px #ffe171; }
 #characterList .name-label {
-  font-family: "Press Start 2P", monospace;
-  font-size: 0.62rem;
-  color: #ffe148;
-  text-shadow: 1px 1px #444,0 0 2px #000;
-  margin-top: 3px;
-  letter-spacing: 1px;
-  user-select: none;
-  pointer-events: none;
-  text-align: center;
+  font-family: "Press Start 2P", monospace; font-size: 0.62rem; color: #ffe148;
+  text-shadow: 1px 1px #444,0 0 2px #000; margin-top: 3px; letter-spacing: 1px; text-align: center;
 }
 #startGameBtn {
-  font-family: inherit;
-  font-size: 1.1rem;
-  padding: 12px 28px;
-  border-radius: 8px;
-  border: 3px solid #ffe148;
-  background: #564b95;
-  color: #fff;
-  margin-top: 13px;
-  box-shadow: 2px 2px #262345;
+  font-family: inherit; font-size: 1.1rem; padding: 12px 28px; border-radius: 8px;
+  border: 3px solid #ffe148; background: #564b95; color: #fff; margin-top: 13px; box-shadow: 2px 2px #262345;
   transition: background 0.15s;
 }
-#startGameBtn:disabled {
-  background: #3d335c;
-  color: #999;
-  border-color: #353156;
-}
-.game-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100vw;
-  height: 100vh;
-}
+#startGameBtn:disabled { background: #3d335c; color: #999; border-color: #353156; }
+.game-container { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100vw; height: 100vh; }
 canvas#game {
-  border: 4px solid #1e2330;
-  border-radius: 9px;
-  background: #24255a;
-  box-shadow: 0 8px 45px #181a2a;
-  margin-top: 20px;
-  margin-bottom: 20px;
-  width: 360px;
-  height: 240px;
-  image-rendering: pixelated;
-  touch-action: none;
+  border: 4px solid #1e2330; border-radius: 9px; background: #23224a; box-shadow: 0 8px 45px #181a2a;
+  margin-top: 12px; margin-bottom: 12px; width: 90vw; max-width: 480px; height: auto; aspect-ratio: 480 / 272;
+  image-rendering: pixelated; touch-action: none;
 }
+#messageOverlay {
+  position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Press Start 2P", monospace; font-size: 1.15rem; color: #ffe048;
+  text-shadow: 3px 3px #222, 0 0 9px #1a2330; background: rgba(0,0,0,0.58); pointer-events:none;
+  opacity: 0; transition: opacity 0.3s;
+}
+#messageOverlay.visible { opacity: 1; pointer-events: auto; }
+
 @media (max-width: 480px) {
   canvas#game {
-    width: 96vw;
-    height: 64vw;
+    width: 99vw;
     min-height: 164px;
     min-width: 220px;
     max-width: 100vw;

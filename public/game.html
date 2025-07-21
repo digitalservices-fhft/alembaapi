@@ -2,22 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Digital Services</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <title>Hospital Havoc</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <link rel="stylesheet" href="game.css">
 </head>
 <body>
-<!-- Character Selection Overlay -->
-<div id="characterSelect">
-  <h2>Select Your Character</h2>
-  <div id="characterList"></div>
-  <button id="startGameBtn" disabled>Start Game</button>
-</div>
-<div class="game-container">
-  <!-- Example game canvas -->
-  <canvas id="game" width="360" height="240" tabindex="0"></canvas>
-</div>
-<script src="game.js"></script>
+  <div id="characterSelect">
+    <h2>Select Your Character</h2>
+    <div id="characterList"></div>
+    <button id="startGameBtn" disabled>Start Game</button>
+  </div>
+  <div class="game-container" style="display:none">
+    <canvas id="game" width="480" height="272"></canvas>
+    <div id="messageOverlay"></div>
+  </div>
+  <script src="game.js"></script>
 </body>
 </html>

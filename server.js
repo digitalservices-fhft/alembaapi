@@ -175,7 +175,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       return;
     }
   }
-  if (codeType === 'stock') {
+  } else if (codeType === 'stock') {
   // Handle stock codeType
   const { purchase, transactionStatus, quantity } = req.body;
 
@@ -251,7 +251,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     reqStock.end();
 
    // Default: all fields expected in query
-  {
+  } else {
     const {
       receivingGroup,
       customString1,
@@ -317,9 +317,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         (e.response?.data ? JSON.stringify(e.response.data) : e.message)
       );
     }
-  }
-
-}); // Properly close app.post('/make-call')
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
