@@ -10,7 +10,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const PORT = process.env.PORT || 3000;
 
-// Environment variables
+// Environment variables for Render
 const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
 const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
 const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
