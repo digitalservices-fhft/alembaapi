@@ -85,7 +85,7 @@ app.get('/get-token', (req, res) => {
 });
 
 // Main API endpoint for calls
-app.post('/make-call', upload.single('attachment'), async (req, res) => 
+app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const now = Date.now();
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
