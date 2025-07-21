@@ -5,6 +5,7 @@ const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
 const app = express();
+const FormData = require('form-data');
 const axios = require('axios');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
@@ -137,16 +138,19 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
 
       // Handle attachment if present
       if (req.file) {
-        const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
-        const fileContent = fs.readFileSync(req.file.path);
-        const payload = Buffer.concat([
-          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${req.file.originalname}"\r\nContent-Type: ${req.file.mimetype}\r\n\r\n`),
-          fileContent,
-          Buffer.from(`\r\n--${boundary}--\r\n`)
-        ]);
-
-        // POST attachment, then immediately clean up file after success
-        await new Promise((resolve, reject) => {
+const FormData = require('form-data');
+const form = new FormData();
+form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
+await axios.post(
+  `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
+  form,
+  {
+    headers: {
+      ...form.getHeaders(),
+      'Authorization': `Bearer ${access_token}`
+    }
+  }
+);
           const reqUpload = https.request({
             method: 'POST',
             hostname: 'fhnhs.alembacloud.com',
@@ -166,7 +170,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         });
 
         // Immediately remove uploaded file from server disk (this was missing!)
-        fs.unlink(req.file.path, err => {
           if (err) console.error('Failed to delete uploaded file:', err);
         });
       }
@@ -175,7 +178,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     } catch (err) {
       console.error(err);
       // Clean up file on error as well
-      if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(500).send('Failed to create or submit inf call');
     }
   }
