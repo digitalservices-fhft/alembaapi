@@ -188,7 +188,5 @@ $.ajax({
     }
     $('#responseOutput').text(errorMsg);
   }
-
-    }
-  });
+});
 });
