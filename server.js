@@ -21,10 +21,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Token cache
+let access_token = '';
+let token_expiry = 0;
 
 // Auth token endpoint required for all applications
 app.get('/get-token', (req, res) => {
   const now = Date.now();
+  if (access_token && now < token_expiry) {
+    res.set('Cache-Control', 'private, max-age=300');
+    return res.json({ access_token });
   }
 
   const postData = qs.stringify({
@@ -54,6 +59,9 @@ app.get('/get-token', (req, res) => {
       try {
         const json = JSON.parse(body);
         if (json.access_token) {
+          access_token = json.access_token;
+          token_expiry = Date.now() + (4.5 * 60 * 1000);
+          res.set('Cache-Control', 'private, max-age=300');
           res.json({ access_token });
         } else {
           res.status(500).send('No access_token in response');
@@ -74,9 +82,8 @@ app.get('/get-token', (req, res) => {
 // Main API endpoint for calls
 app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const now = Date.now();
-  const access_token = req.query.Login_Token;
-  if (!access_token) {
-    return res.status(401).send('Access token missing. Please refresh the page.');
+  if (!access_token || now >= token_expiry) {
+    return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
   const codeType = req.query.codeType || req.body.codeType;
 

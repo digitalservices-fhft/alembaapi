@@ -2,13 +2,13 @@
 
 NODE.JS Application - Based on URL parameters will perform verious calls to the Alemba API
 
-Use /dashboard for reporting dashboard 
 
 **Set the codeType**
 
 | Parameter Name  | Purpose |
 | ------------- |------------- |
 | call | Logs a ticket   |
+| inf | Creates a ticket with a form for description and uploads a photo  |
 | stock | Creates an order/inventory transaction or allocation  |
 
 **Set the title for the HTML H1 on the page**
@@ -43,6 +43,19 @@ Images should be around 250px high and in .png format with transparent backgroun
 | type  | Integer | Adds the call category.|
 | impact | Integer | Adds the call impact.|
 | urgency  | Integer | Adds the call urgency.|
+
+**URL Parameters Available for inf**
+
+| Parameter Name  | Type | Purpose |
+| ------------- | ------------- |------------- |
+| receivingGroup | Integer  |Specifies the group that will receive the ticket. |
+| customString1  | String | A custom string field used in the ticket payload.|
+| configurationItemId  | Integer | Identifies the configuration item related to the ticket.|
+| type  | Integer | Adds the call category.|
+| impact | Integer | Adds the call impact.|
+| urgency  | Integer | Adds the call urgency.|
+
+description is used on the HTML form.
 
 **URL Parameters Available for inventory transaction**
 

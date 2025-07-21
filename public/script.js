@@ -34,6 +34,10 @@ function setupUI() {
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
+  const heading = document.querySelector('h1.mb-4');
+  if (!boardTitle && heading) {
+    heading.textContent = 'If you are seeing this you have not passed the correct title parameter!';
+  }
 
   if (boardTitle) {
     const heading = document.querySelector('h1.mb-4');
@@ -137,7 +141,6 @@ async function submitInfo() {
 async function submitStock() {
   const quantity = document.getElementById('quantityInput').value;
   const urlParams = new URLSearchParams(window.location.search);
-  urlParams.append('Login_Token', accessToken);
   const url = `/make-call?${urlParams.toString()}`;
 
   const payload = { quantity };
@@ -154,13 +157,7 @@ async function submitStock() {
 
   hideProgressBar();
 
-  const text = await res.text();
-  let result;
-  try {
-    result = JSON.parse(text);
-  } catch (e) {
-    throw new Error(text || 'Unknown error');
-  }
+  const result = await res.json();
   if (res.ok) {
     showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
@@ -170,7 +167,6 @@ async function submitStock() {
 // Submits a general call using query parameters
 async function submitCall() {
   const urlParams = new URLSearchParams(window.location.search);
-  urlParams.append('Login_Token', accessToken);
   const url = `/make-call?${urlParams.toString()}`;
 
   showProgressBar();
@@ -181,13 +177,7 @@ async function submitCall() {
 
   hideProgressBar();
 
-  const text = await res.text();
-  let result;
-  try {
-    result = JSON.parse(text);
-  } catch (e) {
-    throw new Error(text || 'Unknown error');
-  }
+  const result = await res.json();
   if (res.ok) {
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
