@@ -24,14 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 let access_token = '';
 let token_expiry = 0;
 
-// Auth token endpoint required for all applications
+// Always fetch a new token on each request
 app.get('/get-token', (req, res) => {
-  const now = Date.now();
-  if (access_token && now < token_expiry) {
-    res.set('Cache-Control', 'private, max-age=300');
-    return res.json({ access_token });
-  }
-
   const postData = qs.stringify({
     grant_type: 'password',
     scope: 'session-type:Analyst',
@@ -57,12 +51,11 @@ app.get('/get-token', (req, res) => {
     response.on('end', () => {
       const body = Buffer.concat(chunks).toString();
       try {
-        const json = JSON.parse(body);
+        
+const json = JSON.parse(body);
         if (json.access_token) {
-          access_token = json.access_token;
-          token_expiry = Date.now() + (4.5 * 60 * 1000);
-          res.set('Cache-Control', 'private, max-age=300');
-          res.json({ access_token });
+          res.set('Cache-Control', 'private, no-store');
+          res.json({ access_token: json.access_token });
         } else {
           res.status(500).send('No access_token in response');
         }
