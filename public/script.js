@@ -102,7 +102,7 @@ async function handleButtonClick() {
       await submitCall(); // Submit a general call
     }
   } catch (err) {
-    showResponse(`Submission error: ${err.message}`);
+    showResponse(`Submission error: ${err.message}`, 'danger');
   }
 }
 
@@ -112,7 +112,7 @@ async function submitInfo() {
   const imageFile = document.getElementById('imageInput').files[0];
 
   if (!description) {
-    showResponse('Description is required.');
+    showResponse('Description is required.', 'danger');
     return;
   }
 
@@ -128,12 +128,12 @@ async function submitInfo() {
     body: formData,
   });
 
-  const result = await res.json();
+    const result = await res.json();
   if (res.ok) {
     document.getElementById('callApiBtn').style.display = 'none';
-    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`);
+    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error', 'warning');
   }
 }
 
@@ -159,9 +159,9 @@ async function submitStock() {
 
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`);
+    showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error', 'warning');
   }
 }
 
@@ -176,16 +176,16 @@ async function submitCall() {
 
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`);
+    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || 'Unknown error', 'warning');
   }
 }
 
 // Displays a message in the response output area
-function showResponse(message) {
+function showResponse(message, type = 'info') {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = message;
+  responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
   responseBox.style.display = 'block';
 }
 
