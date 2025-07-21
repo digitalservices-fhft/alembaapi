@@ -194,7 +194,7 @@ function hideResponse() {
 
 // Define imageMap for stock items
 const imageMap = {
-  smartcard: "smartcardkeyboard.png"
+  smartcard: "smartcardkeyboard.png",
   docking: "dockingstation.png",
   mouse: "mouse.png",
   barcode: "scanner.png",
