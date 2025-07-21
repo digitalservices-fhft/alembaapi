@@ -1,4 +1,3 @@
-// Express server for file uploads and call handling with file cleanup
 const express = require('express');
 const https = require('https');
 const qs = require('querystring');
