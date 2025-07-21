@@ -213,7 +213,7 @@ let player = {
 let input = { left: false, right: false, up: false };
 let patients = [];
 let patientsPassed = 0;
-let spawnTimer = 0, spawnRate = 42;
+let spawnTimer = 0, spawnRate = 90;
 let bossAppeared = false;
 let fireworks = [];
 
@@ -284,7 +284,8 @@ function spawnPatient() {
   let iv=Math.random()>0.65;
   patients.push({
     x: W+20+Math.random()*70, y, iv,
-    t: Math.floor(Math.random()*24)
+    t: Math.floor(Math.random()*24),
+    isDead: false
   });
 }
 function spawnBoss() {
@@ -427,19 +428,41 @@ function stepGame() {
       if(patients.length<4) spawnPatient();
       spawnTimer=0;
     }
-    for(let p of patients) {
-      p.x -= 2.4; p.t++;
-    }
-    patients = patients.filter(p => p.x > -40);
-    for(let p of patients) {
-      if(Math.abs(player.x-p.x)<28 && Math.abs(player.y-p.y)<40) {
-        gameOver();
-        return;
-      }
-      if(p.x+18<player.x && !p.passed) {
-        p.passed = true; patientsPassed++;
-      }
-    }
+    for (let p of patients) {
+  if (p.isDead) continue;
+
+  // Stomp logic: player falling, feet above patient, and overlapping horizontally
+  const playerBottom = player.y + player.height;
+  const patientTop = p.y + 15; // some vertical fudge for head/chest position
+  const patientBottom = p.y + 55;
+
+  const playerHoriz = player.x < p.x + 24 && player.x + player.width > p.x + 8;
+  const playerAbove = player.vy > 0 && playerBottom > patientTop && player.y + 18 < patientTop;
+
+  if (playerAbove && playerHoriz) {
+    // Kill patient
+    p.isDead = true;
+    // Optional: play effect/sound/score
+    player.vy = -4.6; // bounce up
+    continue;
+  }
+
+  // Usual collision (not stomp): touching from the side or not falling onto them
+  if (!p.isDead &&
+      Math.abs(player.x - p.x) < 28 &&
+      Math.abs(player.y - p.y) < 40 &&
+      !(playerAbove && playerHoriz)) {
+    gameOver();
+    return;
+  }
+
+  // Passing counter & other logic unchanged
+  if (p.x + 18 < player.x && !p.passed && !p.isDead) {
+    p.passed = true;
+    patientsPassed++;
+  }
+}
+
     if(patientsPassed >= 100 && !bossAppeared) {
       setTimeout(()=>{ showMessage("You must void Aaran",1200); setTimeout(spawnBoss,1200); },350);
       bossAppeared=true;

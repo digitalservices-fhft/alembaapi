@@ -175,55 +175,80 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       return;
     }
   }
-  } else if (codeType === 'stock') {
-      // Handle stock codeType using axios
-      const { purchase, transactionStatus, quantity } = req.body;
+  if (codeType === 'stock') {
+  // Handle stock codeType
+  const { purchase, transactionStatus, quantity } = req.body;
 
-      const stockPayload = {
-        Person: 34419,
-        Purchase: parseInt(purchase, 10),
-        Quantity: parseInt(quantity, 10),
-        TransactionStatus: parseInt(transactionStatus, 10)
-      };
+    const stockPayload = {
+      Person: 34419,
+      Purchase: parseInt(purchase, 10),
+      Quantity: parseInt(quantity, 10),
+      TransactionStatus: parseInt(transactionStatus, 10)
+    };
 
-      try {
-        // 1. Create inventory allocation
-        const createRes = await axios.post(
-          `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
-          stockPayload,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${access_token}`
-            }
-          }
-        );
+    const options = {
+      method: 'POST',
+      hostname: 'fhnhs.alembacloud.com',
+      path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${access_token}`
+      },
+      maxRedirects: 20
+    };
 
-        const ref = createRes.data.Ref;
+    const reqStock = https.request(options, (resStock) => {
+      let chunks = [];
+      resStock.on('data', (chunk) => chunks.push(chunk));
+      resStock.on('end', () => {
+        const body = Buffer.concat(chunks).toString();
+        let ref;
+        try {
+          const json = JSON.parse(body);
+          ref = json.Ref;
+        } catch (e) {
+          return res.status(500).send('Failed to parse inventory allocation response');
+        }
+
         if (!ref) {
           return res.status(500).send('No Ref returned from inventory allocation');
         }
 
-        // 2. Submit inventory allocation
-        const submitRes = await axios.put(
-          `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
-          null,
-          {
-            headers: {
-              'Authorization': `Bearer ${access_token}`
-            }
-          }
-        );
+        const submitOptions = {
+          method: 'PUT',
+          hostname: 'fhnhs.alembacloud.com',
+          path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
+          headers: { 'Authorization': `Bearer ${access_token}` },
+          maxRedirects: 20
+        };
 
-        res.send({
-          message: 'Inventory allocation created and submitted successfully',
-          callRef: ref,
-          submitResponse: submitRes.data
+        const submitReq = https.request(submitOptions, (submitRes) => {
+          let submitChunks = [];
+          submitRes.on('data', (chunk) => submitChunks.push(chunk));
+          submitRes.on('end', () => {
+            const submitBody = Buffer.concat(submitChunks).toString();
+            res.send({
+              message: 'Inventory allocation created and submitted successfully',
+              callRef: ref,
+              submitResponse: submitBody
+            });
+          });
         });
-      } catch (e) {
-        res.status(500).send('Error creating or submitting inventory allocation: ' +
-          (e.response?.data ? JSON.stringify(e.response.data) : e.message));
-      }
+
+        submitReq.on('error', (e) => {
+          res.status(500).send('Error submitting inventory allocation: ' + e.message);
+        });
+
+        submitReq.end();
+      });
+    });
+
+    reqStock.on('error', (e) => {
+      res.status(500).send('Error creating inventory allocation: ' + e.message);
+    });
+
+    reqStock.write(JSON.stringify(stockPayload));
+    reqStock.end();
 
    // Default: all fields expected in query
   {
@@ -294,6 +319,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     }
   }
 }); // CLOSE app.post('/make-call')
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
