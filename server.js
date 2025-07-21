@@ -141,50 +141,28 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       );
 
       // Handle attachment if present
-      if (req.file) {
-const FormData = require('form-data');
-const form = new FormData();
-form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
-await axios.post(
-  `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
-  form,
-  {
-    headers: {
-      ...form.getHeaders(),
-      'Authorization': `Bearer ${access_token}`
-    }
-  }
-);
-          const reqUpload = https.request({
-            method: 'POST',
-            hostname: 'fhnhs.alembacloud.com',
-            path: `/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
-            headers: {
-              'Content-Type': `multipart/form-data; boundary=${boundary}`,
-              'Authorization': `Bearer ${access_token}`,
-              'Content-Length': payload.length
-            }
-          }, resUpload => {
-            resUpload.on('data', () => {});
-            resUpload.on('end', resolve);
-          });
-          reqUpload.on('error', reject);
-          reqUpload.write(payload);
-          reqUpload.end();
-});
+     
+if (req.file) {
+  const FormData = require('form-data');
+  const form = new FormData();
+  form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
 
-        // Immediately remove uploaded file from server disk (this was missing!)
-          if (err) console.error('Failed to delete uploaded file:', err);
-        });
+  await axios.post(
+    `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
+    form,
+    {
+      headers: {
+        ...form.getHeaders(),
+        'Authorization': `Bearer ${access_token}`
       }
-
-      return res.send({ message: 'Call created and submitted successfully', callRef });
-    } catch (err) {
-      console.error(err);
-      // Clean up file on error as well
-      return res.status(500).send('Failed to create or submit inf call');
     }
-  }
+  );
+
+  // Immediately remove uploaded file from server disk
+  fs.unlink(req.file.path, (err) => {
+    if (err) console.error('Failed to delete uploaded file:', err);
+  });
+}
   else if (codeType === 'stock') {
     // Handle stock codeType
     const {
