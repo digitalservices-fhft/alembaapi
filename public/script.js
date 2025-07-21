@@ -35,7 +35,6 @@ function getParam(param, defaultValue = null) {
 // Sets up the UI based on the codeType parameter (titel, call, stock, inf)
 function setupUI() {
   const codeType = getParam('codeType', 'call');
-  const boardTitle = getParam('title');
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
