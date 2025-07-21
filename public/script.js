@@ -2,9 +2,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
-
-let accessToken = ''; // Will hold the token retrieved from the server
-
+// Will hold the token retrieved from the server
+let accessToken = '';
 // Initialises the app: fetches token, sets up UI, and binds button click
 async function initializeApp() {
   try {
@@ -14,10 +13,9 @@ async function initializeApp() {
     btn.style.display = 'block'; // Show the button once token is ready
     btn.addEventListener('click', handleButtonClick); // Bind click handler
   } catch (err) {
-    showResponse(`Failed to retrieve token: ${err.message}`);
+    showResponse(`Failed to retrieve token: ${err.message}`, 'danger');
   }
 }
-
 // Fetches the access token from the server
 async function fetchToken() {
   const response = await fetch('/get-token');
@@ -25,24 +23,22 @@ async function fetchToken() {
   const data = await response.json();
   return data.access_token;
 }
-
 // Utility to get a query parameter from the URL
 function getParam(param, defaultValue = null) {
   const params = new URLSearchParams(window.location.search);
   return params.has(param) ? params.get(param) : defaultValue;
 }
-
-// Sets up the UI based on the codeType parameter (titel, call, stock, inf)
+// Sets up the UI based on the codeType parameter (title, call, stock, inf)
 function setupUI() {
   const codeType = getParam('codeType', 'call');
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
-  if (boardTitle) {
-  const heading = document.querySelector('h1.mb-4');
-  if (heading) heading.textContent = boardTitle;
-}
 
+  if (boardTitle) {
+    const heading = document.querySelector('h1.mb-4');
+    if (heading) heading.textContent = boardTitle;
+  }
   // Display image based on title keyword match
   if (boardTitle && imageContainer) {
     imageContainer.innerHTML = '';
@@ -60,7 +56,6 @@ function setupUI() {
       imageContainer.textContent = 'No matching image found.';
     }
   }
-
   // Show/hide form sections based on codeType
   const infFields = document.getElementById('infFields');
   const stockFields = document.getElementById('stockFields');
@@ -87,7 +82,6 @@ function setupUI() {
       stockFields.style.display = 'none';
   }
 }
-
 // Handles the main button click and routes to the appropriate submission function
 async function handleButtonClick() {
   const codeType = getParam('codeType', 'call');
@@ -105,7 +99,6 @@ async function handleButtonClick() {
     showResponse(`Submission error: ${err.message}`, 'danger');
   }
 }
-
 // Submits an information call with optional image attachment
 async function submitInfo() {
   const description = document.getElementById('descriptionInput').value;
@@ -118,38 +111,39 @@ async function submitInfo() {
 
   const formData = new FormData();
   formData.append('description', description);
-  if (imageFile) formData.append('attachment', imageFile);
+  if (imageFile) formData.append('file', imageFile); // Correct field name for attachment
 
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
+
+  showProgressBar();
 
   const res = await fetch(url, {
     method: 'POST',
     body: formData,
   });
 
-    const result = await res.json();
+  hideProgressBar();
+
+  const result = await res.json();
   if (res.ok) {
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error', 'warning');
+    throw new Error(result.message || 'Unknown error');
   }
 }
-
 // Submits a stock update request
 async function submitStock() {
-  const purchase = document.getElementById('purchaseInput').value;
   const quantity = document.getElementById('quantityInput').value;
-  const transactionStatus = document.getElementById('transactionStatusInput').value;
+  const urlParams = new URLSearchParams(window.location.search);
+  const url = `/make-call?${urlParams.toString()}`;
 
-  const payload = {
-    purchase,
-    quantity,
-    transactionStatus,
-  };
+  const payload = { quantity };
 
-  const res = await fetch('/make-call?codeType=stock', {
+  showProgressBar();
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -157,45 +151,64 @@ async function submitStock() {
     body: JSON.stringify(payload),
   });
 
+  hideProgressBar();
+
   const result = await res.json();
   if (res.ok) {
     showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error', 'warning');
+    throw new Error(result.message || 'Unknown error');
   }
 }
-
 // Submits a general call using query parameters
 async function submitCall() {
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
 
+  showProgressBar();
+
   const res = await fetch(url, {
     method: 'POST',
   });
+
+  hideProgressBar();
 
   const result = await res.json();
   if (res.ok) {
     showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error', 'warning');
+    throw new Error(result.message || 'Unknown error');
   }
 }
-
+// Shows a Bootstrap progress bar in the response output
+function showProgressBar() {
+  const responseBox = document.getElementById('responseOutput');
+  responseBox.innerHTML = `
+    <div class="progress">
+      <div class="progress-bar progress-bar-striped bg-success progress-bar-animated"
+           role="progressbar" style="width: 100%" aria-valuenow="100"
+           aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+  `;
+  responseBox.style.display = 'block';
+}
+// Hides the progress bar (clears the response output)
+function hideProgressBar() {
+  const responseBox = document.getElementById('responseOutput');
+  responseBox.innerHTML = '';
+}
 // Displays a message in the response output area
 function showResponse(message, type = 'info') {
   const responseBox = document.getElementById('responseOutput');
   responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
   responseBox.style.display = 'block';
 }
-
 // Hides the response output area
 function hideResponse() {
   const responseBox = document.getElementById('responseOutput');
   responseBox.style.display = 'none';
   responseBox.innerHTML = '';
 }
-
 // Define imageMap for stock items
 const imageMap = {
   smartcard: "smartcardkeyboard.png",
@@ -206,4 +219,4 @@ const imageMap = {
   rover: "rover.png",
   powermic: "powermic.png",
   monitor: "monitor.png"
- };
+};
