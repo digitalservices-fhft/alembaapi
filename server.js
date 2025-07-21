@@ -337,7 +337,7 @@ await axios.post(
     });
     callReq.write(JSON.stringify(callPayload));
     callReq.end();
-  }
+  });
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
