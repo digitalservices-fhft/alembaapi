@@ -1,6 +1,6 @@
 {
   "name": "APIAlembaApp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Digital Services Node.js app for Render with dashboard integration",
   "main": "server.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "body-parser": "^1.20.2",
     "axios": "^1.6.0",
     "xmlbuilder": "^15.1.1",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.0",
     "form-data": "^4.0.0"
   },
   "engines": {
