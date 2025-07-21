@@ -114,8 +114,8 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       CustomString1: customString1,
       User: 34419
     };
-    if (receivingGroup)      callPayload.ReceivingGroup = parseInt(receivingGroup, 10);
-    if (type)                callPayload.Type = parseInt(type, 10);
+    if (receivingGroup) callPayload.ReceivingGroup = parseInt(receivingGroup, 10);
+    if (type) callPayload.Type = parseInt(type, 10);
     if (configurationItemId) callPayload.ConfigurationItemId = parseInt(configurationItemId, 10);
 
     try {
@@ -141,192 +141,192 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       );
 
       // Handle attachment if present
-     
-if (req.file) {
-  const FormData = require('form-data');
-  const form = new FormData();
-  form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
+      if (req.file) {
+        const form = new FormData();
+        form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
 
-  await axios.post(
-    `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
-    form,
-    {
-      headers: {
-        ...form.getHeaders(),
-        'Authorization': `Bearer ${access_token}`
-      }
-    }
-  );
+        await axios.post(
+          `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
+          form,
+          {
+            headers: {
+              ...form.getHeaders(),
+              'Authorization': `Bearer ${access_token}`
+            }
+          }
+        );
 
-  // Immediately remove uploaded file from server disk
-  fs.unlink(req.file.path, (err) => {
-    if (err) console.error('Failed to delete uploaded file:', err);
-  });
-}
-  else if (codeType === 'stock') {
-  // Handle stock codeType
-  const {
-    purchase,
-    transactionStatus,
-    quantity
-  } = req.body;
-
-  const stockPayload = {
-    Person: 34419,
-    Purchase: parseInt(purchase, 10),
-    Quantity: parseInt(quantity, 10),
-    TransactionStatus: parseInt(transactionStatus, 10)
-  };
-
-  const options = {
-    method: 'POST',
-    hostname: 'fhnhs.alembacloud.com',
-    path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${access_token}`
-    },
-    maxRedirects: 20
-  };
-
-  const reqStock = https.request(options, (resStock) => {
-    let chunks = [];
-    resStock.on('data', (chunk) => chunks.push(chunk));
-    resStock.on('end', () => {
-      const body = Buffer.concat(chunks).toString();
-      let ref;
-      try {
-        const json = JSON.parse(body);
-        ref = json.Ref;
-      } catch (e) {
-        return res.status(500).send('Failed to parse inventory allocation response');
-      }
-
-      if (!ref) {
-        return res.status(500).send('No Ref returned from inventory allocation');
-      }
-
-      const submitOptions = {
-        method: 'PUT',
-        hostname: 'fhnhs.alembacloud.com',
-        path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
-        headers: { 'Authorization': `Bearer ${access_token}` },
-        maxRedirects: 20
-      };
-
-      const submitReq = https.request(submitOptions, (submitRes) => {
-        let submitChunks = [];
-        submitRes.on('data', (chunk) => submitChunks.push(chunk));
-        submitRes.on('end', () => {
-          const submitBody = Buffer.concat(submitChunks).toString();
-          res.send({
-            message: 'Inventory allocation created and submitted successfully',
-            callRef: ref,
-            submitResponse: submitBody
-          });
+        // Immediately remove uploaded file from server disk
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('Failed to delete uploaded file:', err);
         });
+      }
+
+      res.send({
+        message: 'Call created and submitted successfully',
+        callRef
       });
-
-      submitReq.on('error', (e) => {
-        res.status(500).send('Error submitting inventory allocation: ' + e.message);
-      });
-
-      submitReq.end();
-    });
-  });
-
-  reqStock.on('error', (e) => {
-    res.status(500).send('Error creating inventory allocation: ' + e.message);
-  });
-
-  reqStock.write(JSON.stringify(stockPayload));
-  reqStock.end();
-
-
-  } else {
-    // Default: all fields expected in query
-    const {
-      receivingGroup,
-      customString1,
-      configurationItemId,
-      type,
-      impact,
-      urgency,
-      description
-    } = req.query;
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
-      return res.status(400).send('Missing required parameters for call creation');
+    } catch (error) {
+      res.status(500).send('Error processing inf call: ' + error.message);
     }
-    const callPayload = {
-      Description: description,
-      DescriptionHtml: `<p>${description}</p>`,
-      IpkStatus: 1,
-      IpkStream: 0,
-      Impact: parseInt(impact, 10),
-      Urgency: parseInt(urgency, 10),
-      ReceivingGroup: parseInt(receivingGroup, 10),
-      Type: parseInt(type, 10),
-      CustomString1: customString1,
-      ConfigurationItemId: parseInt(configurationItemId, 10),
-      User: 34419
+  } else if (codeType === 'stock') {
+  // Handle stock codeType
+  const { purchase, transactionStatus, quantity } = req.body;
+
+    const stockPayload = {
+      Person: 34419,
+      Purchase: parseInt(purchase, 10),
+      Quantity: parseInt(quantity, 10),
+      TransactionStatus: parseInt(transactionStatus, 10)
     };
+
     const options = {
       method: 'POST',
       hostname: 'fhnhs.alembacloud.com',
-      path: `/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
+      path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${access_token}`
       },
       maxRedirects: 20
     };
-    const callReq = https.request(options, (callRes) => {
+
+    const reqStock = https.request(options, (resStock) => {
       let chunks = [];
-      callRes.on('data', (chunk) => chunks.push(chunk));
-      callRes.on('end', () => {
+      resStock.on('data', (chunk) => chunks.push(chunk));
+      resStock.on('end', () => {
         const body = Buffer.concat(chunks).toString();
         let ref;
         try {
           const json = JSON.parse(body);
           ref = json.Ref;
         } catch (e) {
-          return res.status(500).send('Failed to parse call creation response');
+          return res.status(500).send('Failed to parse inventory allocation response');
         }
+
         if (!ref) {
-          return res.status(500).send('Call created but no Ref returned. Response: ' + body);
+          return res.status(500).send('No Ref returned from inventory allocation');
         }
+
         const submitOptions = {
           method: 'PUT',
           hostname: 'fhnhs.alembacloud.com',
-          path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
+          path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
           headers: { 'Authorization': `Bearer ${access_token}` },
           maxRedirects: 20
         };
+
         const submitReq = https.request(submitOptions, (submitRes) => {
           let submitChunks = [];
           submitRes.on('data', (chunk) => submitChunks.push(chunk));
           submitRes.on('end', () => {
             const submitBody = Buffer.concat(submitChunks).toString();
             res.send({
-              message: 'Call created and submitted successfully',
+              message: 'Inventory allocation created and submitted successfully',
               callRef: ref,
               submitResponse: submitBody
             });
           });
         });
+
         submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting call: ' + e.message);
+          res.status(500).send('Error submitting inventory allocation: ' + e.message);
         });
+
         submitReq.end();
       });
     });
-    
-request.on('error', (e) => {
-    res.status(500).send('Error requesting token: ' + e.message);
+
+    reqStock.on('error', (e) => {
+      res.status(500).send('Error creating inventory allocation: ' + e.message);
+    });
+
+    reqStock.write(JSON.stringify(stockPayload));
+    reqStock.end();
+
+  } else {
+   // Default: all fields expected in query
+const {
+  receivingGroup,
+  customString1,
+  configurationItemId,
+  type,
+  impact,
+  urgency,
+  description
+} = req.query;
+if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
+  return res.status(400).send('Missing required parameters for call creation');
+}
+const callPayload = {
+  Description: description,
+  DescriptionHtml: `<p>${description}</p>`,
+  IpkStatus: 1,
+  IpkStream: 0,
+  Impact: parseInt(impact, 10),
+  Urgency: parseInt(urgency, 10),
+  ReceivingGroup: parseInt(receivingGroup, 10),
+  Type: parseInt(type, 10),
+  CustomString1: customString1,
+  ConfigurationItemId: parseInt(configurationItemId, 10),
+  User: 34419
+};
+const options = {
+  method: 'POST',
+  hostname: 'fhnhs.alembacloud.com',
+  path: `/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${access_token}`
+  },
+  maxRedirects: 20
+};
+const callReq = https.request(options, (callRes) => {
+  let chunks = [];
+  callRes.on('data', (chunk) => chunks.push(chunk));
+  callRes.on('end', () => {
+    const body = Buffer.concat(chunks).toString();
+    let ref;
+    try {
+      const json = JSON.parse(body);
+      ref = json.Ref;
+    } catch (e) {
+      return res.status(500).send('Failed to parse call creation response');
+    }
+    if (!ref) {
+      return res.status(500).send('Call created but no Ref returned. Response: ' + body);
+    }
+    const submitOptions = {
+      method: 'PUT',
+      hostname: 'fhnhs.alembacloud.com',
+      path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
+      headers: { 'Authorization': `Bearer ${access_token}` },
+      maxRedirects: 20
+    };
+    const submitReq = https.request(submitOptions, (submitRes) => {
+      let submitChunks = [];
+      submitRes.on('data', (chunk) => submitChunks.push(chunk));
+      submitRes.on('end', () => {
+        const submitBody = Buffer.concat(submitChunks).toString();
+        res.send({
+          message: 'Call created and submitted successfully',
+          callRef: ref,
+          submitResponse: submitBody
+        });
+      });
+    });
+    submitReq.on('error', (e) => {
+      res.status(500).send('Error submitting call: ' + e.message);
+    });
+    submitReq.end();
   });
-  request.write(postData);
-  request.end();
 });
+callReq.on('error', (e) => {
+  res.status(500).send('Error creating call: ' + e.message);
+});
+callReq.write(JSON.stringify(callPayload));
+callReq.end();
+}); // Close the /make-call endpoint
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
