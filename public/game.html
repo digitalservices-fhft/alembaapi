@@ -2,27 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Digital Services Hospital Run</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="game.css" rel="stylesheet">
+  <title>Digital Services</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Digital Services Hospital Run</h1>
-  <!-- Character Selection Overlay -->
-<div id="characterSelect" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:10;background:#222;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-  <h2 style="color:#fff;">Select Your Character</h2>
-  <div id="characterList" style="display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin:18px 0;"></div>
-  <button id="startGameBtn" style="font-size:1.3rem;padding:10px 22px;border-radius:8px;border:2px solid #666;background:#444;color:#fff;margin-top:12px;" disabled>Start Game</button>
+<!-- Character Selection Overlay -->
+<div id="characterSelect">
+  <h2>Select Your Character</h2>
+  <div id="characterList"></div>
+  <button id="startGameBtn" disabled>Start Game</button>
 </div>
-  <div class="game-container">
-    <canvas id="gameCanvas" width="480" height="320"></canvas>
-    <div class="controls">
-      <button id="leftBtn">◀️</button>
-      <button id="jumpBtn">⬆️</button>
-      <button id="rightBtn">▶️</button>
-    </div>
-  </div>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="game.js"></script>
+<div class="game-container">
+  <!-- Example game canvas -->
+  <canvas id="game" width="360" height="240" tabindex="0"></canvas>
+</div>
+<script src="game.js"></script>
 </body>
 </html>
