@@ -3,6 +3,8 @@ const https = require('https');
 const qs = require('querystring');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 const { parse } = require('url');
 const xmlbuilder = require('xmlbuilder');
 const app = express();
@@ -82,15 +84,10 @@ app.get('/get-token', (req, res) => {
 });
 
 // Creates the Alemba call or inventory transaction for the QR Code application
-app.post('/make-call', (req, res) => {
-  
+app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const now = Date.now();
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
-  }
-
-  if (!access_token) {
-    return res.status(401).send('No access token. Please authenticate first.');
   }
 
   const {
@@ -106,6 +103,99 @@ app.post('/make-call', (req, res) => {
     transactionStatus,
     quantity
   } = req.body;
+
+  const file = req.file;
+
+  if (codeType === 'inf') {
+    if (!impact || !urgency || !customString1 || !description) {
+      return res.status(400).send('Missing required parameters for inf call');
+    }
+
+    const callPayload = {
+      Description: description,
+      DescriptionHtml: `<p>${description}</p>`,
+      IpkStatus: 1,
+      IpkStream: 0,
+      Impact: parseInt(impact, 10),
+      Urgency: parseInt(urgency, 10),
+      CustomString1: customString1,
+      User: 34419
+    };
+
+    try {
+      // Create the call
+      const createResponse = await axios.post(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
+        callPayload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${access_token}`
+          }
+        }
+      );
+
+      const callRef = createResponse.data.Ref;
+      if (!callRef) {
+        return res.status(500).send('Call created but no Ref returned.');
+      }
+
+      // Submit the call
+      await axios.put(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${callRef}/submit?Login_Token=${access_token}`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`
+          }
+        }
+      );
+
+      // Upload attachment if present
+      if (file) {
+        const filePath = path.join(__dirname, file.path);
+        const fileContent = fs.readFileSync(filePath);
+        const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
+
+        const payload = Buffer.concat([
+          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.originalname}"\r\nContent-Type: ${file.mimetype}\r\n\r\n`),
+          fileContent,
+          Buffer.from(`\r\n--${boundary}--\r\n`)
+        ]);
+
+        await new Promise((resolve, reject) => {
+          const options = {
+            method: 'POST',
+            hostname: 'fhnhs.alembacloud.com',
+            path: `/production/alemba.api/api/v2/call/${callRef}/attachment?Login_Token=${access_token}`,
+            headers: {
+              'Content-Type': `multipart/form-data; boundary=${boundary}`,
+              'Authorization': `Bearer ${access_token}`,
+              'Content-Length': payload.length
+            }
+          };
+
+          const reqUpload = https.request(options, (resUpload) => {
+            let chunks = [];
+            resUpload.on('data', (chunk) => chunks.push(chunk));
+            resUpload.on('end', () => {
+              const body = Buffer.concat(chunks).toString();
+              resolve(body);
+            });
+          });
+
+          reqUpload.on('error', (e) => reject(e));
+          reqUpload.write(payload);
+          reqUpload.end();
+        });
+      }
+
+      res.send({ message: 'Call created and submitted successfully', callRef });
+    } catch (error) {
+      console.error('Error during inf call creation:', error.message);
+      res.status(500).send('Failed to create or submit inf call');
+    }
+  }
 
   if (codeType === 'stock') {
     const stockPayload = {

@@ -19,13 +19,26 @@
         <img src="img/FHFT_DS_Text_Logo_Trans_300x48.png" alt="Digital Services Logo" class="img-fluid" />
       </div>
       <h1 class="mb-4 text-center">If you are seeing this you have not passed the correct parameters!</h1>
+     <!-- Inf code -->
+    <div id="infFields" style="display:none;">
+        <div class="mb-3">
+          <label for="descriptionInput" class="form-label">Description</label>
+          <textarea class="form-control" id="descriptionInput" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="imageInput" class="form-label">Attach Image</label>
+          <input type="file" class="form-control" id="imageInput" accept="image/*" capture="environment">
+        </div>
+      </div> <!-- End of inf code -->
+      <!-- Stock code -->
       <div id="stockFields" class="mb-3">
         <p class="text-muted">Check the stock item matches the image before submitting</p>
         <!-- Image will be inserted here based on keyword in title-->
         <div id="image-container"></div>
         <input type="number" class="form-control form-control-lg mt-3" id="quantityInput" placeholder="Enter quantity" />
         <!-- Additional stock fields can be added here -->
-      </div>
+      </div> <!-- End of stock code -->
+
       <!-- Output area -->
       <button id="callApiBtn" class="btn btn-primary btn-lg w-100">Submit</button>
       <div id="responseOutput" class="mt-4" style="display: none;"></div>

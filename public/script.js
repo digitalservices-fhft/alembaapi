@@ -115,14 +115,73 @@
         }
       }
 
-      // Show or hide stock fields
+      // Show or hide stock/inf fields
       if (codeType === 'stock') {
         $('#stockFields').show();
       } else {
         $('#stockFields').hide();
       }
 
-      // Button click handler
+if (codeType === 'inf') {
+    $('#infFields').show();
+  } else {
+        $('#infFields').hide();
+      }
+
+      // Button click handler inf
+  $btn.click(function () {
+    if (codeType === 'inf') {
+      const descriptionInput = $('#descriptionInput').val();
+      const imageFile = $('#imageInput')[0].files[0];
+
+      if (!impact || !urgency || !customString1 || !descriptionInput) {
+        $('#responseOutput').text('Missing required parameters for inf: impact, urgency, customString1, or description.');
+        $('#responseOutput').show();
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('codeType', 'inf');
+      formData.append('impact', impact);
+      formData.append('urgency', urgency);
+      formData.append('customString1', customString1);
+      formData.append('description', descriptionInput);
+      if (imageFile) {
+        formData.append('attachment', imageFile);
+      }
+
+      $.ajax({
+        url: '/make-call',
+        method: 'POST',
+        processData: false,
+        contentType: false,
+        data: formData,
+        success: function (response) {
+          $('#responseOutput').show();
+          if (response.callRef) {
+            $btn.hide();
+            $('#responseOutput').html(
+              '<div class="alert alert-success"><center>Call created successfully. Reference: <b>' +
+              response.callRef +
+              '</b></center></div>'
+            );
+          } else {
+            $('#responseOutput').text('API call succeeded but no reference returned.');
+          }
+        },
+        error: function (xhr) {
+          $('#responseOutput').show();
+          let errorMsg = 'API call failed.';
+          if (xhr.responseText) {
+            errorMsg += ' ' + xhr.responseText;
+          }
+          $('#responseOutput').text(errorMsg);
+        }
+      });
+      return;
+    }
+
+      // Button click handler stock 
       $btn.click(function () {
         if (codeType === 'stock') {
           const quantity = $('#quantityInput').val();
