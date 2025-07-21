@@ -241,7 +241,7 @@ if (req.file) {
 
   reqStock.write(JSON.stringify(stockPayload));
   reqStock.end();
-}
+
 
   } else {
     // Default: all fields expected in query
