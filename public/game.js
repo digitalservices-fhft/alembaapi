@@ -1,3 +1,48 @@
+window.playerSpriteIndex = 0;
+// ===== Character options =====
+const CHARACTERS = [
+  { name: "David", desc: "Grumpy, bald, casual", draw: function(x, y, ctx) {
+    // Draw grumpy bald David in jeans+tee
+    ctx.fillStyle = "#888"; ctx.fillRect(x+4, y, 16, 15); // head
+    ctx.fillStyle = "#bbb"; ctx.fillRect(x+7, y+7, 10, 5); // eyebrows
+    ctx.fillStyle = "#315d7d"; ctx.fillRect(x, y+16, 24, 12); // T-shirt
+    ctx.fillStyle = "#225"; ctx.fillRect(x, y+28, 24, 10); // Jeans
+  }},
+  { name: "Chris", desc: "Handsome, brown hair, smart", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#6b4e23"; ctx.fillRect(x+4, y, 16, 15); // brown hair/head
+    ctx.fillStyle = "#fff"; ctx.fillRect(x+7, y+17, 10, 10); // white shirt
+    ctx.fillStyle = "#1a237e"; ctx.fillRect(x, y+27, 24, 8); // navy slacks
+    ctx.strokeStyle = "#bdbdbd"; ctx.strokeRect(x+8, y+18, 8, 8); // tie outline
+  }},
+  { name: "Jon", desc: "Smiling, brown hair, smart casual", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#795548"; ctx.fillRect(x+4, y, 16, 15); // brown hair/head
+    ctx.fillStyle = "#b0bec5"; ctx.fillRect(x+3, y+15, 18, 8); // shirt (grey/blue)
+    ctx.fillStyle = "#7b1fa2"; ctx.fillRect(x, y+23, 24, 10); // jacket
+  }},
+  { name: "Emma", desc: "Blonde, nurse", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#ffeb3b"; ctx.fillRect(x+4, y, 16, 15); // blonde hair/head
+    ctx.fillStyle = "#fff"; ctx.fillRect(x, y+16, 24, 20); // nurse dress
+    ctx.fillStyle = "#e57373"; ctx.fillRect(x+10, y+16, 4, 4); // cross badge
+  }},
+  { name: "Karen", desc: "Long brown hair, power suit", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#4e342e"; ctx.fillRect(x+3, y, 18, 17); // hair
+    ctx.fillStyle = "#fff"; ctx.fillRect(x+8, y+12, 8, 7); // white shirt
+    ctx.fillStyle = "#607d8b"; ctx.fillRect(x, y+19, 24, 15); // suit
+  }},
+  { name: "Maria", desc: "Long brown hair, smart clothes, Greek", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#7b5435"; ctx.fillRect(x+3, y, 18, 17); // hair
+    ctx.fillStyle = "#607d8b"; ctx.fillRect(x, y+19, 24, 10); // dress
+    ctx.fillStyle = "#ffd54f"; ctx.fillRect(x+15, y+18, 6, 2); // jewelry
+  }},
+  { name: "Rob", desc: "Light brown hair, suit", draw: function(x, y, ctx) {
+    ctx.fillStyle = "#bcaaa4"; ctx.fillRect(x+4, y, 16, 15); // light brown head
+    ctx.fillStyle = "#212121"; ctx.fillRect(x, y+14, 24, 15); // suit
+    ctx.fillStyle = "#fff"; ctx.fillRect(x+8, y+16, 8, 8); // shirt
+    ctx.fillStyle = "#64b5f6"; ctx.fillRect(x+11, y+17, 2, 7); // tie
+  }}
+];
+let selectedChar = 0;
+
 $(function () {
   // ========== GAME CONSTANTS ==========
   const canvas = document.getElementById("gameCanvas");
@@ -66,6 +111,53 @@ $(function () {
     if (e.key === " " || e.key === "ArrowUp") jump = false;
   });
 
+  $(function () {
+
+  // Inject character options visually
+  let list = $("#characterList");
+  CHARACTERS.forEach((char, idx) => {
+    let canvas = document.createElement("canvas");
+    canvas.width = 40; canvas.height = 45;
+    canvas.style.border = "2px solid #666";
+    canvas.style.background = "#333";
+    canvas.style.borderRadius = "8px";
+    canvas.style.touchAction = "manipulation";
+    canvas.style.margin = "0 4px";
+    canvas.title = char.desc;
+
+    // Draw preview
+    char.draw(8, 5, canvas.getContext("2d"));
+
+    // For accessibility:
+    canvas.tabIndex = 0;
+    // Selection highlight
+    canvas.addEventListener('click', function () {
+      selectedChar = idx;
+      window.playerSpriteIndex = idx;
+      for (let i = 0; i < list[0].children.length; i++) {
+        list[0].children[i].style.borderColor = (i === idx) ? "#ffd700" : "#666";
+        list[0].children[i].style.boxShadow = (i === idx) ? "0 0 8px #ffa" : "";
+      }
+      $("#startGameBtn").prop("disabled", false);
+    });
+    list.append(canvas);
+  });
+
+  $("#startGameBtn").on("click touchstart", function () {
+    $("#characterSelect").hide();
+    window.playerSpriteIndex = selectedChar;
+    setTimeout(() => { resetGame(); }, 20);
+  });
+
+  // Make sure game does not start before selection:
+  $(".game-container").hide();
+  $("#characterSelect").show();
+
+  $("#startGameBtn").on("click touchstart", function () {
+    $(".game-container").show();
+  });
+});
+
   // ========== GAME LOOP ==========
 
   function update() {
@@ -131,18 +223,13 @@ $(function () {
     ctx.fillText("Avoid the hazards! Touch arrows to move, jump", 14 + cameraX, 18);
   }
 
-  // Simple 8-bit styled figure for IT engineer (blue body, white head, yellow tie)
-  function drawPlayer(px, py) {
-    // body
-    ctx.fillStyle = player.color;
-    ctx.fillRect(px, py + 10, 24, 18);
-    // head
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(px + 4, py, 16, 13);
-    // tie
-    ctx.fillStyle = "#ffd700";
-    ctx.fillRect(px + 11, py + 17, 3, 7);
+  // Simple 8-bit styled figure for IT engineer
+ function drawPlayer(px, py) {
+  // Use function from selected character to render
+  if (typeof window.playerSpriteIndex === "number" && CHARACTERS[window.playerSpriteIndex] && CHARACTERS[window.playerSpriteIndex].draw) {
+    CHARACTERS[window.playerSpriteIndex].draw(px, py, ctx);
   }
+}
 
   // Main draw
   function draw() {

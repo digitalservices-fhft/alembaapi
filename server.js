@@ -1,3 +1,35 @@
+// Express server for file uploads and call handling with file cleanup
+const express = require('express');
+const https = require('https');
+const qs = require('querystring');
+const path = require('path');
+const fs = require('fs');
+const app = express();
+const FormData = require('form-data');
+const axios = require('axios');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const PORT = process.env.PORT || 3000;
+
+// Environment variables
+const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
+const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
+const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
+
+// Middleware
+app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Route '/easteregg' to send game.html
+app.get('/easteregg', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'game.html'));
+});
+
+// Token cache
+let access_token = '';
+let token_expiry = 0;
+
 // Auth token endpoint required for all applications
 app.get('/get-token', (req, res) => {
   const now = Date.now();
@@ -300,13 +332,13 @@ await axios.post(
         submitReq.end();
       });
     });
-    callReq.on('error', (e) => {
-      res.status(500).send('Error creating call: ' + e.message);
-    });
-    callReq.write(JSON.stringify(callPayload));
-    callReq.end();
-    }
+    
+request.on('error', (e) => {
+    res.status(500).send('Error requesting token: ' + e.message);
   });
+  request.write(postData);
+  request.end();
+});
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
