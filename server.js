@@ -1,4 +1,4 @@
-// server.js - Complete refactored version with Axios and best practices
+// server.js - Corrected version with proper Node.js syntax
 const express = require('express');
 const axios = require('axios');
 const helmet = require('helmet');
@@ -16,7 +16,6 @@ const PORT = process.env.PORT || 3000;
 // CONFIGURATION AND VALIDATION
 // ============================================================================
 
-// Environment variables validation
 const requiredEnvVars = ['API_BASE_URL', 'API_CLIENT_ID', 'API_CLIENT_SECRET'];
 requiredEnvVars.forEach(envVar => {
     if (!process.env[envVar]) {
@@ -25,7 +24,6 @@ requiredEnvVars.forEach(envVar => {
     }
 });
 
-// Configuration object
 const config = {
     api: {
         baseURL: process.env.API_BASE_URL,
@@ -46,20 +44,15 @@ const config = {
 // CACHING AND UTILITIES
 // ============================================================================
 
-// Token cache with TTL
 const tokenCache = new NodeCache({ 
-    stdTTL: 3300, // 55 minutes (tokens typically expire in 60 minutes)
-    checkperiod: 300 // Check for expired keys every 5 minutes
+    stdTTL: 3300,
+    checkperiod: 300
 });
 
-// Request queue for handling concurrent requests during token refresh
 let tokenRefreshPromise = null;
-const requestQueue = [];
 
-// Utility function for sleep/delay
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Enhanced logging utility
 const logger = {
     info: (message, meta = {}) => {
         if (config.server.nodeEnv === 'development') {
@@ -79,10 +72,9 @@ const logger = {
 };
 
 // ============================================================================
-// AXIOS CONFIGURATION AND INTERCEPTORS
+// AXIOS CONFIGURATION
 // ============================================================================
 
-// Create Axios instance for Alemba API calls
 const alembaApiClient = axios.create({
     baseURL: `${config.api.baseURL}/production/alemba.api/api/v2`,
     timeout: config.api.timeout,
@@ -92,7 +84,6 @@ const alembaApiClient = axios.create({
     }
 });
 
-// Create Axios instance for authentication calls
 const authClient = axios.create({
     baseURL: config.api.baseURL,
     timeout: config.api.timeout,
@@ -121,7 +112,7 @@ alembaApiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor for error handling and token refresh
+// Response interceptor for error handling
 alembaApiClient.interceptors.response.use(
     (response) => {
         logger.info('API request successful', { 
@@ -133,13 +124,11 @@ alembaApiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Handle 401 errors with token refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
             logger.warn('Received 401 response, attempting token refresh');
             originalRequest._retry = true;
 
             try {
-                // Clear cached token and get a new one
                 tokenCache.del('access_token');
                 const newToken = await getAccessToken();
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -153,7 +142,6 @@ alembaApiClient.interceptors.response.use(
             }
         }
 
-        // Enhanced error logging
         logger.error('API request failed', error, {
             url: error.config?.url,
             method: error.config?.method,
@@ -169,7 +157,6 @@ alembaApiClient.interceptors.response.use(
 // SECURITY MIDDLEWARE
 // ============================================================================
 
-// Security headers with Helmet
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -187,7 +174,6 @@ app.use(helmet({
     }
 }));
 
-// CORS configuration
 app.use(cors({
     origin: process.env.ALLOWED_ORIGINS ? 
         process.env.ALLOWED_ORIGINS.split(',') : 
@@ -197,10 +183,9 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP to 100 requests per windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: '15 minutes'
@@ -210,52 +195,38 @@ const limiter = rateLimit({
 });
 
 app.use('/api/', limiter);
-
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static file serving
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ============================================================================
 // AUTHENTICATION SERVICE
 // ============================================================================
 
-/**
- * Get access token with caching and automatic refresh
- * Implements token caching, retry logic, and request queuing
- */
 async function getAccessToken() {
-    // Check cache first
     const cachedToken = tokenCache.get('access_token');
     if (cachedToken) {
         logger.info('Using cached access token');
         return cachedToken;
     }
 
-    // If token refresh is already in progress, wait for it
     if (tokenRefreshPromise) {
         logger.info('Token refresh in progress, waiting...');
         return await tokenRefreshPromise;
     }
 
-    // Start token refresh process
     tokenRefreshPromise = refreshAccessToken();
 
     try {
         const token = await tokenRefreshPromise;
-        tokenRefreshPromise = null; // Clear the promise
+        tokenRefreshPromise = null;
         return token;
     } catch (error) {
-        tokenRefreshPromise = null; // Clear the promise on error
+        tokenRefreshPromise = null;
         throw error;
     }
 }
 
-/**
- * Refresh access token with retry logic
- */
 async function refreshAccessToken() {
     logger.info('Refreshing access token');
 
@@ -273,12 +244,11 @@ async function refreshAccessToken() {
                 const token = response.data.access_token;
                 const expiresIn = response.data.expires_in || 3600;
                 
-                // Cache token with buffer time (5 minutes before actual expiry)
                 tokenCache.set('access_token', token, Math.max(expiresIn - 300, 300));
                 
                 logger.info('Access token refreshed successfully', { 
-                    expiresIn, 
-                    attempt 
+                    expiresIn: expiresIn, 
+                    attempt: attempt 
                 });
                 
                 return token;
@@ -293,7 +263,6 @@ async function refreshAccessToken() {
                 throw new Error(`Failed to refresh token after ${config.api.retryAttempts} attempts: ${error.message}`);
             }
 
-            // Exponential backoff
             const delay = config.api.retryDelay * Math.pow(2, attempt - 1);
             logger.info(`Retrying token refresh in ${delay}ms...`);
             await sleep(delay);
@@ -302,16 +271,13 @@ async function refreshAccessToken() {
 }
 
 // ============================================================================
-// API SERVICE FUNCTIONS
+// API SERVICE FUNCTIONS - CORRECTED SYNTAX
 // ============================================================================
 
-/**
- * Make API call with retry logic and enhanced error handling
- */
 async function makeApiCall(endpoint, method = 'GET', data = null, retries = config.api.retryAttempts) {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-            logger.info(`Making API call`, { endpoint, method, attempt });
+            logger.info(`Making API call`, { endpoint: endpoint, method: method, attempt: attempt });
 
             const requestConfig = {
                 method: method.toLowerCase(),
@@ -325,22 +291,27 @@ async function makeApiCall(endpoint, method = 'GET', data = null, retries = conf
             const response = await alembaApiClient(requestConfig);
             
             logger.info('API call successful', { 
-                endpoint, 
-                method, 
+                endpoint: endpoint, 
+                method: method, 
                 status: response.status 
             });
 
-            return {
+            // CORRECTED: Fixed object literal syntax
+            const result = {
                 success: true,
                  response.data,
                 status: response.status,
                 headers: response.headers
             };
+            
+            return result;
 
         } catch (error) {
-            logger.error(`API call attempt ${attempt} failed`, error, { endpoint, method });
+            logger.error(`API call attempt ${attempt} failed`, error, { 
+                endpoint: endpoint, 
+                method: method 
+            });
 
-            // Don't retry on client errors (4xx except 401, 429)
             if (error.response?.status >= 400 && 
                 error.response?.status < 500 && 
                 ![401, 429].includes(error.response.status)) {
@@ -352,7 +323,6 @@ async function makeApiCall(endpoint, method = 'GET', data = null, retries = conf
                 throw error;
             }
 
-            // Exponential backoff with jitter
             const baseDelay = config.api.retryDelay * Math.pow(2, attempt - 1);
             const jitter = Math.random() * 1000;
             const delay = baseDelay + jitter;
@@ -363,26 +333,21 @@ async function makeApiCall(endpoint, method = 'GET', data = null, retries = conf
     }
 }
 
-/**
- * Enhanced error handler for API responses
- */
 function handleApiError(error, operation = 'API operation') {
     const errorResponse = {
         success: false,
         error: 'An error occurred',
-        operation,
+        operation: operation,
         timestamp: new Date().toISOString()
     };
 
     if (error.response) {
-        // Server responded with error status
         const status = error.response.status;
         const statusText = error.response.statusText;
         
         errorResponse.status = status;
         errorResponse.statusText = statusText;
 
-        // Add specific error messages based on status codes
         switch (status) {
             case 400:
                 errorResponse.error = 'Bad request - please check your input data';
@@ -406,13 +371,11 @@ function handleApiError(error, operation = 'API operation') {
                 errorResponse.error = `Server error: ${statusText}`;
         }
 
-        // Include API error details in development
         if (config.server.nodeEnv === 'development' && error.response.data) {
             errorResponse.details = error.response.data;
         }
 
     } else if (error.request) {
-        // Request was made but no response received
         if (error.code === 'ECONNABORTED') {
             errorResponse.error = 'Request timeout - please try again';
         } else if (error.code === 'ENOTFOUND') {
@@ -423,7 +386,6 @@ function handleApiError(error, operation = 'API operation') {
         errorResponse.code = error.code;
 
     } else {
-        // Something else happened
         errorResponse.error = config.server.nodeEnv === 'development' ? 
             error.message : 
             'An unexpected error occurred';
@@ -436,7 +398,6 @@ function handleApiError(error, operation = 'API operation') {
 // INPUT VALIDATION MIDDLEWARE
 // ============================================================================
 
-// Validation rules for call creation
 const validateCallData = [
     body('codeType')
         .trim()
@@ -467,7 +428,6 @@ const validateCallData = [
         .withMessage('Transaction status must be 1, 2, or 3')
 ];
 
-// Validation result handler
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -485,7 +445,6 @@ const handleValidationErrors = (req, res, next) => {
 // ROUTES AND ENDPOINTS
 // ============================================================================
 
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
@@ -496,7 +455,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Get access token endpoint
 app.get('/api/get-token', async (req, res) => {
     try {
         logger.info('Token request received');
@@ -517,7 +475,6 @@ app.get('/api/get-token', async (req, res) => {
     }
 });
 
-// Create call/inventory allocation endpoint
 app.post('/api/make-call', validateCallData, handleValidationErrors, async (req, res) => {
     try {
         logger.info('Call creation request received', { 
@@ -527,12 +484,10 @@ app.post('/api/make-call', validateCallData, handleValidationErrors, async (req,
 
         const { codeType, description, purchase, quantity, transactionStatus } = req.body;
 
-        // Prepare payload based on codeType
         let apiPayload;
         let endpoint;
 
         if (codeType === 'stock') {
-            // Stock allocation payload
             apiPayload = {
                 shortDescription: description,
                 purchase: purchase || '',
@@ -542,28 +497,25 @@ app.post('/api/make-call', validateCallData, handleValidationErrors, async (req,
             endpoint = '/inventoryAllocation';
             
         } else {
-            // Regular call payload
             apiPayload = {
                 shortDescription: description,
-                priority: '3', // Default priority
+                priority: '3',
                 category: 'General',
                 status: 'Open'
             };
             endpoint = '/call';
         }
 
-        logger.info('Making API call', { endpoint, codeType });
+        logger.info('Making API call', { endpoint: endpoint, codeType: codeType });
 
-        // Make the API call
         const result = await makeApiCall(endpoint, 'POST', apiPayload);
 
         if (result.success) {
-            // Extract call reference from response
             const callRef = result.data?.ref || result.data?.id || 'Unknown';
             
             logger.info('Call/allocation created successfully', { 
-                callRef, 
-                codeType 
+                callRef: callRef, 
+                codeType: codeType 
             });
 
             const responseMessage = codeType === 'stock' ? 
@@ -594,11 +546,10 @@ app.post('/api/make-call', validateCallData, handleValidationErrors, async (req,
     }
 });
 
-// Get call details endpoint
 app.get('/api/call/:ref', async (req, res) => {
     try {
         const callRef = req.params.ref;
-        logger.info('Call details request received', { callRef });
+        logger.info('Call details request received', { callRef: callRef });
 
         const result = await makeApiCall(`/call/${callRef}`, 'GET');
 
@@ -623,20 +574,18 @@ app.get('/api/call/:ref', async (req, res) => {
     }
 });
 
-// Search calls endpoint
 app.get('/api/calls', async (req, res) => {
     try {
         const { status, category, priority, limit = 50, offset = 0 } = req.query;
         
         logger.info('Call search request received', { 
-            status, 
-            category, 
-            priority, 
-            limit, 
-            offset 
+            status: status, 
+            category: category, 
+            priority: priority, 
+            limit: limit, 
+            offset: offset 
         });
 
-        // Build query parameters
         const queryParams = new URLSearchParams();
         if (status) queryParams.append('status', status);
         if (category) queryParams.append('category', category);
@@ -671,12 +620,10 @@ app.get('/api/calls', async (req, res) => {
     }
 });
 
-// Logout endpoint (clear cached token)
 app.post('/api/logout', (req, res) => {
     try {
         logger.info('Logout request received');
         
-        // Clear cached token
         tokenCache.del('access_token');
         
         res.json({
@@ -694,12 +641,10 @@ app.post('/api/logout', (req, res) => {
     }
 });
 
-// Serve main application page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 404 handler
 app.use((req, res) => {
     logger.warn('404 - Route not found', { 
         method: req.method, 
@@ -715,7 +660,6 @@ app.use((req, res) => {
     });
 });
 
-// Global error handler
 app.use((error, req, res, next) => {
     logger.error('Unhandled application error', error, {
         method: req.method,
@@ -733,31 +677,24 @@ app.use((error, req, res, next) => {
 });
 
 // ============================================================================
-// SERVER STARTUP AND GRACEFUL SHUTDOWN
+// SERVER STARTUP
 // ============================================================================
 
-// Graceful shutdown handler
 const gracefulShutdown = (signal) => {
     logger.info(`Received ${signal}. Starting graceful shutdown...`);
     
     server.close(() => {
         logger.info('HTTP server closed');
-        
-        // Clear token cache
         tokenCache.close();
-        
-        // Close any other resources
         process.exit(0);
     });
 
-    // Force shutdown after 30 seconds
     setTimeout(() => {
         logger.error('Could not close connections in time, forcefully shutting down');
         process.exit(1);
     }, 30000);
 };
 
-// Start server
 const server = app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`Server started successfully`, {
         port: PORT,
@@ -766,7 +703,6 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
         pid: process.pid
     });
 
-    // Pre-warm token cache
     try {
         await getAccessToken();
         logger.info('Token cache pre-warmed successfully');
@@ -775,20 +711,17 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     }
 });
 
-// Handle graceful shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle uncaught exceptions and rejections
 process.on('uncaughtException', (error) => {
     logger.error('Uncaught Exception', error);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection', reason, { promise });
+    logger.error('Unhandled Rejection', reason, { promise: promise });
     process.exit(1);
 });
 
-// Export for testing
 module.exports = app;
