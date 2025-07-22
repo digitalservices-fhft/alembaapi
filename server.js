@@ -1,265 +1,794 @@
+// server.js - Complete refactored version with Axios and best practices
 const express = require('express');
-const https = require('https');
-const qs = require('querystring');
-const path = require('path');
-const fs = require('fs');
-const { parse } = require('url');
-const app = express();
 const axios = require('axios');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const cors = require('cors');
+const path = require('path');
+const { body, validationResult } = require('express-validator');
+const NodeCache = require('node-cache');
+require('dotenv').config();
+
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CLIENT_ID = process.env.CLIENT_ID || 'your_client_id';
-const API_USERNAME = process.env.API_USERNAME || 'your_api_username';
-const API_PASSWORD = process.env.API_PASSWORD || 'your_api_password';
+// ============================================================================
+// CONFIGURATION AND VALIDATION
+// ============================================================================
 
-app.use(express.static('public'));
-app.use(express.json());
-
-let access_token = '';
-let token_expiry = 0;
-
-// Get Auth token, required for all applications
-app.get('/get-token', (req, res) => {
-  const now = Date.now();
-  if (access_token && now < token_expiry) {
-    res.set('Cache-Control', 'private, max-age=300');
-    return res.json({ access_token });
-  }
-
-//Use environment variables for Login details, required for all applications
-  const postData = qs.stringify({
-    grant_type: 'password',
-    scope: 'session-type:Analyst',
-    client_id: CLIENT_ID,
-    username: API_USERNAME,
-    password: API_PASSWORD
-  });
-
-  const options = {
-    method: 'POST',
-    hostname: 'fhnhs.alembacloud.com',
-    path: '/production/alemba.web/oauth/login',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': Buffer.byteLength(postData)
-    },
-    maxRedirects: 20
-  };
-
-  const request = https.request(options, (response) => {
-    let chunks = [];
-    response.on('data', (chunk) => chunks.push(chunk));
-    response.on('end', () => {
-      const body = Buffer.concat(chunks).toString();
-      try {
-        const json = JSON.parse(body);
-        if (json.access_token) {
-          access_token = json.access_token;
-          token_expiry = Date.now() + (4.5 * 60 * 1000);
-          res.set('Cache-Control', 'private, max-age=300');
-          res.json({ access_token });
-        } else {
-          res.status(500).send('No access_token in response');
-        }
-      } catch (e) {
-        res.status(500).send('Failed to parse token response');
-      }
-    });
-  });
-
-  request.on('error', (e) => {
-    res.status(500).send('Error requesting token: ' + e.message);
-  });
-
-  request.write(postData);
-  request.end();
+// Environment variables validation
+const requiredEnvVars = ['API_BASE_URL', 'API_CLIENT_ID', 'API_CLIENT_SECRET'];
+requiredEnvVars.forEach(envVar => {
+    if (!process.env[envVar]) {
+        console.error(`Missing required environment variable: ${envVar}`);
+        process.exit(1);
+    }
 });
 
-// Creates the Alemba call or inventory transaction for the QR Code application
-app.post('/make-call', (req, res) => {
-  
-  const now = Date.now();
-  if (!access_token || now >= token_expiry) {
-    return res.status(401).send('Access token expired or missing. Please refresh the page.');
-  }
+// Configuration object
+const config = {
+    api: {
+        baseURL: process.env.API_BASE_URL,
+        clientId: process.env.API_CLIENT_ID,
+        clientSecret: process.env.API_CLIENT_SECRET,
+        timeout: parseInt(process.env.API_TIMEOUT) || 30000,
+        retryAttempts: parseInt(process.env.API_RETRY_ATTEMPTS) || 3,
+        retryDelay: parseInt(process.env.API_RETRY_DELAY) || 1000
+    },
+    server: {
+        port: PORT,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        logLevel: process.env.LOG_LEVEL || 'info'
+    }
+};
 
-  if (!access_token) {
-    return res.status(401).send('No access token. Please authenticate first.');
-  }
+// ============================================================================
+// CACHING AND UTILITIES
+// ============================================================================
 
-  const {
-    codeType,
-    receivingGroup,
-    customString1,
-    configurationItemId,
-    type,
-    impact,
-    urgency,
-    description,
-    purchase,
-    transactionStatus,
-    quantity
-  } = req.body;
+// Token cache with TTL
+const tokenCache = new NodeCache({ 
+    stdTTL: 3300, // 55 minutes (tokens typically expire in 60 minutes)
+    checkperiod: 300 // Check for expired keys every 5 minutes
+});
 
-  if (codeType === 'stock') {
-    const stockPayload = {
-      Person: 34419,
-      Purchase: parseInt(purchase, 10),
-      Quantity: parseInt(quantity, 10),
-      TransactionStatus: parseInt(transactionStatus, 10)
-    };
+// Request queue for handling concurrent requests during token refresh
+let tokenRefreshPromise = null;
+const requestQueue = [];
 
-    const options = {
-      method: 'POST',
-      hostname: 'fhnhs.alembacloud.com',
-      path: `/production/alemba.api/api/v2/inventory-allocation?Login_Token=${access_token}`,
-      headers: {
+// Utility function for sleep/delay
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Enhanced logging utility
+const logger = {
+    info: (message, meta = {}) => {
+        if (config.server.nodeEnv === 'development') {
+            console.log(`[INFO] ${new Date().toISOString()}: ${message}`, meta);
+        }
+    },
+    error: (message, error = {}, meta = {}) => {
+        console.error(`[ERROR] ${new Date().toISOString()}: ${message}`, {
+            error: error.message || error,
+            stack: error.stack,
+            ...meta
+        });
+    },
+    warn: (message, meta = {}) => {
+        console.warn(`[WARN] ${new Date().toISOString()}: ${message}`, meta);
+    }
+};
+
+// ============================================================================
+// AXIOS CONFIGURATION AND INTERCEPTORS
+// ============================================================================
+
+// Create Axios instance for Alemba API calls
+const alembaApiClient = axios.create({
+    baseURL: `${config.api.baseURL}/production/alemba.api/api/v2`,
+    timeout: config.api.timeout,
+    headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${access_token}`
-      },
-      maxRedirects: 20
-    };
+        'Accept': 'application/json'
+    }
+});
 
-    const reqStock = https.request(options, (resStock) => {
-      let chunks = [];
-      resStock.on('data', (chunk) => chunks.push(chunk));
-      resStock.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        let ref;
+// Create Axios instance for authentication calls
+const authClient = axios.create({
+    baseURL: config.api.baseURL,
+    timeout: config.api.timeout,
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
+});
+
+// Request interceptor for API authentication
+alembaApiClient.interceptors.request.use(
+    async (config) => {
         try {
-          const json = JSON.parse(body);
-          ref = json.Ref;
-        } catch (e) {
-          return res.status(500).send('Failed to parse inventory allocation response');
+            const token = await getAccessToken();
+            config.headers.Authorization = `Bearer ${token}`;
+            logger.info('Added authorization header to request', { url: config.url });
+            return config;
+        } catch (error) {
+            logger.error('Failed to add authorization header', error);
+            return Promise.reject(error);
         }
-        if (!ref) {
-          return res.status(500).send('No Ref returned from inventory allocation');
+    },
+    (error) => {
+        logger.error('Request interceptor error', error);
+        return Promise.reject(error);
+    }
+);
+
+// Response interceptor for error handling and token refresh
+alembaApiClient.interceptors.response.use(
+    (response) => {
+        logger.info('API request successful', { 
+            url: response.config.url, 
+            status: response.status 
+        });
+        return response;
+    },
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Handle 401 errors with token refresh
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            logger.warn('Received 401 response, attempting token refresh');
+            originalRequest._retry = true;
+
+            try {
+                // Clear cached token and get a new one
+                tokenCache.del('access_token');
+                const newToken = await getAccessToken();
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                
+                logger.info('Token refreshed, retrying original request');
+                return alembaApiClient(originalRequest);
+            } catch (refreshError) {
+                logger.error('Token refresh failed', refreshError);
+                tokenCache.del('access_token');
+                return Promise.reject(refreshError);
+            }
         }
 
-        const submitOptions = {
-          method: 'PUT',
-          hostname: 'fhnhs.alembacloud.com',
-          path: `/production/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          },
-          maxRedirects: 20
-        };
-
-        const submitReq = https.request(submitOptions, (submitRes) => {
-          let submitChunks = [];
-          submitRes.on('data', (chunk) => submitChunks.push(chunk));
-          submitRes.on('end', () => {
-            const submitBody = Buffer.concat(submitChunks).toString();
-            res.send({
-              message: 'Inventory allocation created and submitted successfully',
-              callRef: ref,
-              submitResponse: submitBody
-            });
-          });
+        // Enhanced error logging
+        logger.error('API request failed', error, {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+            statusText: error.response?.statusText
         });
 
-        submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting inventory allocation: ' + e.message);
-        });
+        return Promise.reject(error);
+    }
+);
 
-        submitReq.end();
-      });
-    });
+// ============================================================================
+// SECURITY MIDDLEWARE
+// ============================================================================
 
-    reqStock.on('error', (e) => {
-      res.status(500).send('Error creating inventory allocation: ' + e.message);
-    });
+// Security headers with Helmet
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://code.jquery.com"],
+            imgSrc: ["'self'", "", "https:"],
+            connectSrc: ["'self'"]
+        }
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 
-    reqStock.write(JSON.stringify(stockPayload));
-    reqStock.end();
-  } else {
-    if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
-      return res.status(400).send('Missing required parameters for call creation');
+// CORS configuration
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS ? 
+        process.env.ALLOWED_ORIGINS.split(',') : 
+        (config.server.nodeEnv === 'development' ? true : false),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP to 100 requests per windowMs
+    message: {
+        error: 'Too many requests from this IP, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Static file serving
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ============================================================================
+// AUTHENTICATION SERVICE
+// ============================================================================
+
+/**
+ * Get access token with caching and automatic refresh
+ * Implements token caching, retry logic, and request queuing
+ */
+async function getAccessToken() {
+    // Check cache first
+    const cachedToken = tokenCache.get('access_token');
+    if (cachedToken) {
+        logger.info('Using cached access token');
+        return cachedToken;
     }
 
-    const callPayload = {
-      Description: description,
-      DescriptionHtml: `<p>${description}</p>`,
-      IpkStatus: 1,
-      IpkStream: 0,
-      Impact: parseInt(impact, 10),
-      Urgency: parseInt(urgency, 10),
-      ReceivingGroup: parseInt(receivingGroup, 10),
-      Type: parseInt(type, 10),
-      CustomString1: customString1,
-      ConfigurationItemId: parseInt(configurationItemId, 10),
-      User: 34419
-    };
+    // If token refresh is already in progress, wait for it
+    if (tokenRefreshPromise) {
+        logger.info('Token refresh in progress, waiting...');
+        return await tokenRefreshPromise;
+    }
 
-    const options = {
-      method: 'POST',
-      hostname: 'fhnhs.alembacloud.com',
-      path: `/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${access_token}`
-      },
-      maxRedirects: 20
-    };
+    // Start token refresh process
+    tokenRefreshPromise = refreshAccessToken();
 
-    const callReq = https.request(options, (callRes) => {
-      let chunks = [];
-      callRes.on('data', (chunk) => chunks.push(chunk));
-      callRes.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        let ref;
+    try {
+        const token = await tokenRefreshPromise;
+        tokenRefreshPromise = null; // Clear the promise
+        return token;
+    } catch (error) {
+        tokenRefreshPromise = null; // Clear the promise on error
+        throw error;
+    }
+}
+
+/**
+ * Refresh access token with retry logic
+ */
+async function refreshAccessToken() {
+    logger.info('Refreshing access token');
+
+    for (let attempt = 1; attempt <= config.api.retryAttempts; attempt++) {
         try {
-          const json = JSON.parse(body);
-          ref = json.Ref;
-        } catch (e) {
-          return res.status(500).send('Failed to parse call creation response');
-        }
-        if (!ref) {
-          return res.status(500).send('Call created but no Ref returned. Response: ' + body);
-        }
-
-        const submitOptions = {
-          method: 'PUT',
-          hostname: 'fhnhs.alembacloud.com',
-          path: `/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
-          headers: {
-            'Authorization': `Bearer ${access_token}`
-          },
-          maxRedirects: 20
-        };
-
-        const submitReq = https.request(submitOptions, (submitRes) => {
-          let submitChunks = [];
-          submitRes.on('data', (chunk) => submitChunks.push(chunk));
-          submitRes.on('end', () => {
-            const submitBody = Buffer.concat(submitChunks).toString();
-            res.send({
-              message: 'Call created and submitted successfully',
-              callRef: ref,
-              submitResponse: submitBody
+            const tokenData = new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: config.api.clientId,
+                client_secret: config.api.clientSecret
             });
-          });
+
+            const response = await authClient.post('/production/alemba.api/oauth/token', tokenData);
+
+            if (response.data && response.data.access_token) {
+                const token = response.data.access_token;
+                const expiresIn = response.data.expires_in || 3600;
+                
+                // Cache token with buffer time (5 minutes before actual expiry)
+                tokenCache.set('access_token', token, Math.max(expiresIn - 300, 300));
+                
+                logger.info('Access token refreshed successfully', { 
+                    expiresIn, 
+                    attempt 
+                });
+                
+                return token;
+            } else {
+                throw new Error('Invalid token response format');
+            }
+
+        } catch (error) {
+            logger.error(`Token refresh attempt ${attempt} failed`, error);
+
+            if (attempt === config.api.retryAttempts) {
+                throw new Error(`Failed to refresh token after ${config.api.retryAttempts} attempts: ${error.message}`);
+            }
+
+            // Exponential backoff
+            const delay = config.api.retryDelay * Math.pow(2, attempt - 1);
+            logger.info(`Retrying token refresh in ${delay}ms...`);
+            await sleep(delay);
+        }
+    }
+}
+
+// ============================================================================
+// API SERVICE FUNCTIONS
+// ============================================================================
+
+/**
+ * Make API call with retry logic and enhanced error handling
+ */
+async function makeApiCall(endpoint, method = 'GET', data = null, retries = config.api.retryAttempts) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            logger.info(`Making API call`, { endpoint, method, attempt });
+
+            const requestConfig = {
+                method: method.toLowerCase(),
+                url: endpoint
+            };
+
+            if (data && ['post', 'put', 'patch'].includes(method.toLowerCase())) {
+                requestConfig.data = data;
+            }
+
+            const response = await alembaApiClient(requestConfig);
+            
+            logger.info('API call successful', { 
+                endpoint, 
+                method, 
+                status: response.status 
+            });
+
+            return {
+                success: true,
+                 response.data,
+                status: response.status,
+                headers: response.headers
+            };
+
+        } catch (error) {
+            logger.error(`API call attempt ${attempt} failed`, error, { endpoint, method });
+
+            // Don't retry on client errors (4xx except 401, 429)
+            if (error.response?.status >= 400 && 
+                error.response?.status < 500 && 
+                ![401, 429].includes(error.response.status)) {
+                logger.warn('Client error detected, not retrying', { status: error.response.status });
+                break;
+            }
+
+            if (attempt === retries) {
+                throw error;
+            }
+
+            // Exponential backoff with jitter
+            const baseDelay = config.api.retryDelay * Math.pow(2, attempt - 1);
+            const jitter = Math.random() * 1000;
+            const delay = baseDelay + jitter;
+            
+            logger.info(`Retrying API call in ${Math.round(delay)}ms...`);
+            await sleep(delay);
+        }
+    }
+}
+
+/**
+ * Enhanced error handler for API responses
+ */
+function handleApiError(error, operation = 'API operation') {
+    const errorResponse = {
+        success: false,
+        error: 'An error occurred',
+        operation,
+        timestamp: new Date().toISOString()
+    };
+
+    if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+        
+        errorResponse.status = status;
+        errorResponse.statusText = statusText;
+
+        // Add specific error messages based on status codes
+        switch (status) {
+            case 400:
+                errorResponse.error = 'Bad request - please check your input data';
+                break;
+            case 401:
+                errorResponse.error = 'Authentication failed - please check your credentials';
+                break;
+            case 403:
+                errorResponse.error = 'Access forbidden - insufficient permissions';
+                break;
+            case 404:
+                errorResponse.error = 'Resource not found';
+                break;
+            case 429:
+                errorResponse.error = 'Rate limit exceeded - please try again later';
+                break;
+            case 500:
+                errorResponse.error = 'Internal server error - please try again later';
+                break;
+            default:
+                errorResponse.error = `Server error: ${statusText}`;
+        }
+
+        // Include API error details in development
+        if (config.server.nodeEnv === 'development' && error.response.data) {
+            errorResponse.details = error.response.data;
+        }
+
+    } else if (error.request) {
+        // Request was made but no response received
+        if (error.code === 'ECONNABORTED') {
+            errorResponse.error = 'Request timeout - please try again';
+        } else if (error.code === 'ENOTFOUND') {
+            errorResponse.error = 'Network error - please check your connection';
+        } else {
+            errorResponse.error = 'Network error occurred';
+        }
+        errorResponse.code = error.code;
+
+    } else {
+        // Something else happened
+        errorResponse.error = config.server.nodeEnv === 'development' ? 
+            error.message : 
+            'An unexpected error occurred';
+    }
+
+    return errorResponse;
+}
+
+// ============================================================================
+// INPUT VALIDATION MIDDLEWARE
+// ============================================================================
+
+// Validation rules for call creation
+const validateCallData = [
+    body('codeType')
+        .trim()
+        .isIn(['call', 'stock'])
+        .withMessage('codeType must be either "call" or "stock"'),
+    
+    body('description')
+        .trim()
+        .isLength({ min: 1, max: 500 })
+        .withMessage('Description is required and must be less than 500 characters')
+        .escape(),
+    
+    body('purchase')
+        .optional()
+        .trim()
+        .isLength({ max: 50 })
+        .withMessage('Purchase reference must be less than 50 characters')
+        .escape(),
+    
+    body('quantity')
+        .optional()
+        .isNumeric()
+        .withMessage('Quantity must be a number'),
+    
+    body('transactionStatus')
+        .optional()
+        .isIn(['1', '2', '3'])
+        .withMessage('Transaction status must be 1, 2, or 3')
+];
+
+// Validation result handler
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        logger.warn('Validation errors detected', { errors: errors.array() });
+        return res.status(400).json({
+            success: false,
+            error: 'Validation failed',
+            details: errors.array()
         });
+    }
+    next();
+};
 
-        submitReq.on('error', (e) => {
-          res.status(500).send('Error submitting call: ' + e.message);
-        });
+// ============================================================================
+// ROUTES AND ENDPOINTS
+// ============================================================================
 
-        submitReq.end();
-      });
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: config.server.nodeEnv,
+        version: process.env.npm_package_version || '1.0.0'
     });
-
-    callReq.on('error', (e) => {
-      res.status(500).send('Error creating call: ' + e.message);
-    });
-
-    callReq.write(JSON.stringify(callPayload));
-    callReq.end();
-  }
 });
 
-// Inistialises the server and listens on specified port
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Get access token endpoint
+app.get('/api/get-token', async (req, res) => {
+    try {
+        logger.info('Token request received');
+        
+        const token = await getAccessToken();
+        
+        res.json({
+            success: true,
+            access_token: token,
+            token_type: 'Bearer',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Token request failed', error);
+        const errorResponse = handleApiError(error, 'get access token');
+        res.status(500).json(errorResponse);
+    }
 });
+
+// Create call/inventory allocation endpoint
+app.post('/api/make-call', validateCallData, handleValidationErrors, async (req, res) => {
+    try {
+        logger.info('Call creation request received', { 
+            codeType: req.body.codeType,
+            hasDescription: !!req.body.description 
+        });
+
+        const { codeType, description, purchase, quantity, transactionStatus } = req.body;
+
+        // Prepare payload based on codeType
+        let apiPayload;
+        let endpoint;
+
+        if (codeType === 'stock') {
+            // Stock allocation payload
+            apiPayload = {
+                shortDescription: description,
+                purchase: purchase || '',
+                quantity: parseInt(quantity) || 1,
+                transactionStatus: transactionStatus || '1'
+            };
+            endpoint = '/inventoryAllocation';
+            
+        } else {
+            // Regular call payload
+            apiPayload = {
+                shortDescription: description,
+                priority: '3', // Default priority
+                category: 'General',
+                status: 'Open'
+            };
+            endpoint = '/call';
+        }
+
+        logger.info('Making API call', { endpoint, codeType });
+
+        // Make the API call
+        const result = await makeApiCall(endpoint, 'POST', apiPayload);
+
+        if (result.success) {
+            // Extract call reference from response
+            const callRef = result.data?.ref || result.data?.id || 'Unknown';
+            
+            logger.info('Call/allocation created successfully', { 
+                callRef, 
+                codeType 
+            });
+
+            const responseMessage = codeType === 'stock' ? 
+                'Inventory allocation created and submitted successfully' :
+                'Call created and submitted successfully';
+
+            res.json({
+                success: true,
+                message: responseMessage,
+                callRef: callRef,
+                 result.data,
+                timestamp: new Date().toISOString()
+            });
+
+        } else {
+            logger.error('API call returned unsuccessful result', result);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to create call/allocation',
+                details: result.error || 'Unknown error occurred'
+            });
+        }
+
+    } catch (error) {
+        logger.error('Call creation failed', error);
+        const errorResponse = handleApiError(error, 'create call/allocation');
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Get call details endpoint
+app.get('/api/call/:ref', async (req, res) => {
+    try {
+        const callRef = req.params.ref;
+        logger.info('Call details request received', { callRef });
+
+        const result = await makeApiCall(`/call/${callRef}`, 'GET');
+
+        if (result.success) {
+            res.json({
+                success: true,
+                 result.data,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'Call not found',
+                callRef: callRef
+            });
+        }
+
+    } catch (error) {
+        logger.error('Get call details failed', error, { callRef: req.params.ref });
+        const errorResponse = handleApiError(error, 'get call details');
+        res.status(error.response?.status || 500).json(errorResponse);
+    }
+});
+
+// Search calls endpoint
+app.get('/api/calls', async (req, res) => {
+    try {
+        const { status, category, priority, limit = 50, offset = 0 } = req.query;
+        
+        logger.info('Call search request received', { 
+            status, 
+            category, 
+            priority, 
+            limit, 
+            offset 
+        });
+
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        if (status) queryParams.append('status', status);
+        if (category) queryParams.append('category', category);
+        if (priority) queryParams.append('priority', priority);
+        queryParams.append('limit', limit);
+        queryParams.append('offset', offset);
+
+        const endpoint = `/call?${queryParams.toString()}`;
+        const result = await makeApiCall(endpoint, 'GET');
+
+        if (result.success) {
+            res.json({
+                success: true,
+                 result.data,
+                pagination: {
+                    limit: parseInt(limit),
+                    offset: parseInt(offset)
+                },
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to search calls'
+            });
+        }
+
+    } catch (error) {
+        logger.error('Call search failed', error);
+        const errorResponse = handleApiError(error, 'search calls');
+        res.status(500).json(errorResponse);
+    }
+});
+
+// Logout endpoint (clear cached token)
+app.post('/api/logout', (req, res) => {
+    try {
+        logger.info('Logout request received');
+        
+        // Clear cached token
+        tokenCache.del('access_token');
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Logout failed', error);
+        res.status(500).json({
+            success: false,
+            error: 'Logout failed'
+        });
+    }
+});
+
+// Serve main application page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 404 handler
+app.use((req, res) => {
+    logger.warn('404 - Route not found', { 
+        method: req.method, 
+        url: req.url, 
+        ip: req.ip 
+    });
+    
+    res.status(404).json({
+        success: false,
+        error: 'Route not found',
+        method: req.method,
+        path: req.path
+    });
+});
+
+// Global error handler
+app.use((error, req, res, next) => {
+    logger.error('Unhandled application error', error, {
+        method: req.method,
+        url: req.url,
+        ip: req.ip
+    });
+
+    res.status(500).json({
+        success: false,
+        error: config.server.nodeEnv === 'development' ? 
+            error.message : 
+            'Internal server error',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ============================================================================
+// SERVER STARTUP AND GRACEFUL SHUTDOWN
+// ============================================================================
+
+// Graceful shutdown handler
+const gracefulShutdown = (signal) => {
+    logger.info(`Received ${signal}. Starting graceful shutdown...`);
+    
+    server.close(() => {
+        logger.info('HTTP server closed');
+        
+        // Clear token cache
+        tokenCache.close();
+        
+        // Close any other resources
+        process.exit(0);
+    });
+
+    // Force shutdown after 30 seconds
+    setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 30000);
+};
+
+// Start server
+const server = app.listen(PORT, '0.0.0.0', async () => {
+    logger.info(`Server started successfully`, {
+        port: PORT,
+        environment: config.server.nodeEnv,
+        nodeVersion: process.version,
+        pid: process.pid
+    });
+
+    // Pre-warm token cache
+    try {
+        await getAccessToken();
+        logger.info('Token cache pre-warmed successfully');
+    } catch (error) {
+        logger.warn('Failed to pre-warm token cache', error);
+    }
+});
+
+// Handle graceful shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught exceptions and rejections
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection', reason, { promise });
+    process.exit(1);
+});
+
+// Export for testing
+module.exports = app;
