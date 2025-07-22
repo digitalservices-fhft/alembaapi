@@ -1,232 +1,215 @@
-// Wait for the DOM to be fully loaded before running the app
-document.addEventListener('DOMContentLoaded', () => {
-  initializeApp();
-});
-// Will hold the token retrieved from the server
-let accessToken = '';
-// Initialises the app: fetches token, sets up UI, and binds button click
-async function initializeApp() {
-  try {
-    accessToken = await fetchToken(); // Get access token from server
-    setupUI(); // Adjust UI based on query parameters
-    const btn = document.getElementById('callApiBtn');
-    btn.style.display = 'block'; // Show the button once token is ready
-    btn.addEventListener('click', handleButtonClick); // Bind click handler
-  } catch (err) {
-    showResponse(`Failed to retrieve token: ${err.message}`, 'danger');
-  }
-}
-// Fetches the access token from the server
-async function fetchToken() {
-  const response = await fetch('/get-token');
-  if (!response.ok) throw new Error(await response.text());
-  const data = await response.json();
-  return data.access_token;
-}
-// Utility to get a query parameter from the URL
-function getParam(param, defaultValue = null) {
-  const params = new URLSearchParams(window.location.search);
-  return params.has(param) ? params.get(param) : defaultValue;
-}
-// Sets up the UI based on the codeType parameter (title, call, stock, inf)
-function setupUI() {
-  const validTypes = ['call', 'stock', 'inf'];
-  const codeType = getParam('codeType', 'call');
-  if (!validTypes.includes(codeType)) {
-    window.location.href = 'https://fhnhs.alembacloud.com/production/portal.aspx';
-    return;
-  }
-  const codeType = getParam('codeType', 'call');
-  const btn = document.getElementById('callApiBtn');
-  const imageContainer = document.getElementById('image-container');
-  const boardTitle = getParam('title');
-  const heading = document.querySelector('h1.mb-4');
-  if (!boardTitle && heading) {
-    heading.textContent = 'If you are seeing this you have not passed the correct title parameter!';
-  }
+    $(document).ready(function () {
 
-  if (boardTitle) {
-    const heading = document.querySelector('h1.mb-4');
-    if (heading) heading.textContent = boardTitle;
-  }
-  // Display image based on title keyword match
-  if (boardTitle && imageContainer) {
-    imageContainer.innerHTML = '';
-    const keyword = Object.keys(imageMap).find(k =>
-      boardTitle.toLowerCase().includes(k)
-    );
-    if (keyword) {
-      const img = document.createElement('img');
-      img.src = `img/${imageMap[keyword]}`;
-      img.alt = keyword;
-      img.className = 'img-fluid d-block mx-auto';
-      img.onerror = () => (img.style.display = 'none');
-      imageContainer.appendChild(img);
-    } else {
-      imageContainer.textContent = 'No matching image found.';
-    }
-  }
-  // Show/hide form sections based on codeType
-  const infFields = document.getElementById('infFields');
-  const stockFields = document.getElementById('stockFields');
+      function refreshTokenAndRetry(payload, onSuccess, onError) {
+        $.ajax({
+          url: '/get-token',
+          method: 'GET',
+          cache: true,
+          success: function (data) {
+            accessToken = data.access_token;
+            $.ajax({
+              url: '/make-call',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(payload),
+              success: onSuccess,
+              error: onError
+            });
+          },
+          error: function (xhr) {
+            $('#responseOutput').html(
+              `<div class="alert alert-danger" role="alert">Failed to refresh token: ${xhr.responseText}</div>`
+            ).show();
+          }
+        });
+      }
 
-  switch (codeType) {
-    case 'call':
-      btn.textContent = 'Let us know!';
-      infFields.style.display = 'none';
-      stockFields.style.display = 'none';
-      break;
-    case 'stock':
-      btn.textContent = 'Update stock';
-      stockFields.style.display = 'block';
-      infFields.style.display = 'none';
-      break;
-    case 'inf':
-      btn.textContent = 'Submit';
-      infFields.style.display = 'block';
-      stockFields.style.display = 'none';
-      break;
-    default:
-      btn.textContent = 'Submit';
-      infFields.style.display = 'none';
-      stockFields.style.display = 'none';
-  }
-}
-// Handles the main button click and routes to the appropriate submission function
-async function handleButtonClick() {
-  const codeType = getParam('codeType', 'call');
-  hideResponse();
+      const params = new URLSearchParams(window.location.search);
 
-  try {
-    if (codeType === 'inf') {
-      await submitInfo(); // Submit information with optional file
-    } else if (codeType === 'stock') {
-      await submitStock(); // Submit stock update
-    } else {
-      await submitCall(); // Submit a general call
-    }
-  } catch (err) {
-    showResponse(`Submission error: ${err.message}`, 'danger');
-  }
-}
-// Submits an information call with optional image attachment
-async function submitInfo() {
-  const description = document.getElementById('descriptionInput').value;
-  const imageFile = document.getElementById('imageInput').files[0];
+      function getParam(param, defaultValue = null) {
+        return params.has(param) ? params.get(param) : defaultValue;
+      }
 
-  if (!description) {
-    showResponse('Description is required.', 'danger');
-    return;
-  }
+      let accessToken = '';
+      var $btn = $('#callApiBtn');
 
-  const formData = new FormData();
-  formData.append('description', description);
-  if (imageFile) formData.append('file', imageFile); // Correct field name for attachment
+      // Hide response output and button initially
+      $('#responseOutput').hide();
+      $btn.hide();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const url = `/make-call?${urlParams.toString()}`;
+      // Get Auth Token for API
+      $.ajax({
+        url: '/get-token',
+        method: 'GET',
+        cache: true,
+        success: function (data) {
+          accessToken = data.access_token;
+          $btn.show();
+          $('#responseOutput').text('');
+        },
+        error: function (xhr) {
+          $('#responseOutput').text('Failed to retrieve token: ' + xhr.responseText);
+        }
+      });
 
-  showProgressBar();
+      const boardTitle = getParam('title');
+      if (boardTitle) {
+        $('h1.mb-4').text(boardTitle);
+      }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
+      const codeType = getParam('codeType', 'call');
+      const receivingGroup = getParam('receivingGroup');
+      const customString1 = getParam('customString1');
+      const configurationItemId = getParam('configurationItemId');
+      const type = getParam('type');
+      const description = getParam('description');
+      const impact = getParam('impact');
+      const urgency = getParam('urgency');
+      const purchase = getParam('purchase');
+      const transactionStatus = getParam('transactionStatus');
 
-  hideProgressBar();
+      // Set button text based on codeType
+      if (codeType === 'call') {
+        $btn.text('Let us know!');
+        $btn.show();
+      } else if (codeType === 'stock') {
+        $btn.text('Update stock');
+        $btn.show();
+      } else {
+        $btn.text('Submit');
+        $btn.show();
+      }
 
-  const result = await res.json();
-  if (res.ok) {
-    document.getElementById('callApiBtn').style.display = 'none';
-    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
-  } else {
-    throw new Error(result.message || 'Unknown error');
-  }
-}
-// Submits a stock update request
-async function submitStock() {
-  const quantity = document.getElementById('quantityInput').value;
-  const urlParams = new URLSearchParams(window.location.search);
-  const url = `/make-call?${urlParams.toString()}`;
+      // Image logic for stock codeType
+      if (codeType === "stock") {
+        const imageMap = {
+          smartcard: "smartcardkeyboard.png",
+          docking: "dockingstation.png",
+          mouse: "mouse.png",
+          barcode: "scanner.png",
+          keyboard: "keyboard.png",
+          rover: "rover.png",
+          powermic: "powermic.png",
+          monitor: "monitor.png"
+        };
 
-  const payload = { quantity };
+        if (boardTitle) {
+          $('#image-container').empty();
+          let found = false;
+          for (const keyword in imageMap) {
+            if (boardTitle.toLowerCase().includes(keyword)) {
+              const img = $('<img>', {
+                src: `img/${imageMap[keyword]}`,
+                alt: keyword,
+                onerror: "this.style.display='none'",
+                class: 'img-fluid d-block mx-auto'
+              });
+              $('#image-container').append(img);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            $('#image-container').append('<div class="text-center text-muted">No matching image found.</div>');
+          }
+        }
+      }
 
-  showProgressBar();
+      // Show or hide stock fields
+      if (codeType === 'stock') {
+        $('#stockFields').show();
+      } else {
+        $('#stockFields').hide();
+      }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+      // Button click handler
+      $btn.click(function () {
+        if (codeType === 'stock') {
+          const quantity = $('#quantityInput').val();
+          if (!purchase || !transactionStatus || !quantity) {
+            $('#responseOutput').text('Missing required parameters for stock: purchase, transactionStatus, or quantity.');
+            $('#responseOutput').show();
+            return;
+          }
 
-  hideProgressBar();
+          const payload = {
+            codeType: 'stock',
+            purchase: parseInt(purchase, 10),
+            transactionStatus: parseInt(transactionStatus, 10),
+            quantity: parseInt(quantity, 10)
+          };
 
-  const result = await res.json();
-  if (res.ok) {
-    showResponse(`Stock updated, ref: <strong>${result.callRef}</strong>`, 'success');
-  } else {
-    throw new Error(result.message || 'Unknown error');
-  }
-}
-// Submits a general call using query parameters
-async function submitCall() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const url = `/make-call?${urlParams.toString()}`;
+          $.ajax({
+            url: '/make-call',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function (response) {
+              $('#responseOutput').show();
+              if (response.callRef) {
+                $btn.hide();
+                $('#responseOutput').html(
+                  '<div class="alert alert-success"><center>Stock transaction submitted successfully. Reference: <b>' +
+                  response.callRef +
+                  '</b></center></div>'
+                );
+              } else {
+                $('#responseOutput').text('API call succeeded but no reference returned.');
+              }
+            },
+            error: function (xhr) {
+              $('#responseOutput').show();
+              let errorMsg = 'API call failed.';
+              if (xhr.responseText) {
+                errorMsg += ' ' + xhr.responseText;
+              }
+              $('#responseOutput').text(errorMsg);
+            }
+          });
+        } else {
+          if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
+            $('#responseOutput').text('Missing required parameters. Please provide receivingGroup, customString1, configurationItemId, type, impact, urgency and description.');
+            $('#responseOutput').show();
+            return;
+          }
 
-  showProgressBar();
+          const payload = {
+            receivingGroup,
+            customString1,
+            configurationItemId,
+            type,
+            impact,
+            urgency,
+            description
+          };
 
-  const res = await fetch(url, {
-    method: 'POST',
-  });
-
-  hideProgressBar();
-
-  const result = await res.json();
-  if (res.ok) {
-    showResponse(`Call submitted, ref: <strong>${result.callRef}</strong>`, 'success');
-  } else {
-    throw new Error(result.message || 'Unknown error');
-  }
-}
-// Shows a Bootstrap progress bar in the response output
-function showProgressBar() {
-  const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = `
-    <div class="progress">
-      <div class="progress-bar progress-bar-striped bg-success progress-bar-animated"
-           role="progressbar" style="width: 100%" aria-valuenow="100"
-           aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-  `;
-  responseBox.style.display = 'block';
-}
-// Hides the progress bar (clears the response output)
-function hideProgressBar() {
-  const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = '';
-}
-// Displays a message in the response output area
-function showResponse(message, type = 'info') {
-  const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
-  responseBox.style.display = 'block';
-}
-// Hides the response output area
-function hideResponse() {
-  const responseBox = document.getElementById('responseOutput');
-  responseBox.style.display = 'none';
-  responseBox.innerHTML = '';
-}
-// Define imageMap for stock items
-const imageMap = {
-  smartcard: "smartcardkeyboard.png",
-  docking: "dockingstation.png",
-  mouse: "mouse.png",
-  barcode: "scanner.png",
-  keyboard: "keyboard.png",
-  rover: "rover.png",
-  powermic: "powermic.png",
-  monitor: "monitor.png"
-};
+          $.ajax({
+            url: '/make-call',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function (response) {
+              $('#responseOutput').show();
+              if (response.callRef) {
+                $btn.hide();
+                $('#responseOutput').html(
+                  '<div class="alert alert-success"><center>Call created and submitted successfully. Reference: <b>' +
+                  response.callRef +
+                  '</b></center></div>'
+                );
+              } else {
+                $('#responseOutput').text('API call succeeded but no call reference returned.');
+              }
+            },
+            error: function (xhr) {
+              $('#responseOutput').show();
+              let errorMsg = 'API call failed.';
+              if (xhr.responseText) {
+                errorMsg += ' ' + xhr.responseText;
+              }
+              $('#responseOutput').text(errorMsg);
+            }
+          });
+        }
+      });
+    });
