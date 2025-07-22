@@ -80,6 +80,7 @@ app.get('/get-token', (req, res) => {
   request.on('error', (e) => {
     res.status(500).send('Error requesting token: ' + e.message);
   });
+
   request.write(postData);
   request.end();
 });
@@ -90,21 +91,15 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   if (!access_token || now >= token_expiry) {
     return res.status(401).send('Access token expired or missing. Please refresh the page.');
   }
+
   const codeType = req.query.codeType || req.body.codeType;
   const validTypes = ['call', 'stock', 'inf'];
   if (!validTypes.includes(codeType)) {
     return res.redirect('https://fhnhs.alembacloud.com/production/portal.aspx');
   }
 
-
- if (codeType === 'inf') {
-    // -- "inf" mode: params from query string except description --
-    const receivingGroup = req.query.receivingGroup;
-    const customString1 = req.query.customString1;
-    const configurationItemId = req.query.configurationItemId;
-    const type = req.query.type;
-    const impact = req.query.impact;
-    const urgency = req.query.urgency;
+  if (codeType === 'inf') {
+    const { receivingGroup, customString1, configurationItemId, type, impact, urgency } = req.query;
     const description = req.body.description;
 
     if (!impact || !urgency || !customString1 || !description) {
@@ -126,7 +121,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     };
 
     try {
-      // 1. Create the Call
       const createCallUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`;
       const createRes = await axios.post(createCallUrl, callPayload, {
         headers: {
@@ -134,16 +128,15 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           'Authorization': `Bearer ${access_token}`
         }
       });
+
       const ref = createRes.data.Ref;
       if (!ref) {
         return res.status(500).send('Call created but no Ref returned. Response: ' + JSON.stringify(createRes.data));
       }
 
-      // 2. If file uploaded, attach it to the call
       if (req.file) {
         const form = new FormData();
         form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
-
         await axios.post(
           `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments?Login_Token=${access_token}`,
           form,
@@ -156,11 +149,9 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
             maxBodyLength: Infinity,
           }
         );
-        // Remove uploaded file from temp directory after upload
         fs.unlink(req.file.path, () => {});
       }
 
-      // 3. Submit the Call
       const submitUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`;
       const submitRes = await axios.put(submitUrl, null, {
         headers: {
@@ -173,17 +164,12 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         callRef: ref,
         submitResponse: submitRes.data
       });
-      return;
     } catch (e) {
       res.status(500).send('Error in call creation and/or file upload/submission: ' +
         (e.response?.data ? JSON.stringify(e.response.data) : e.message));
-      return;
     }
-  }
-  if (codeType === 'stock') {
-  // Handle stock codeType
-  const { purchase, transactionStatus, quantity } = req.body;
-
+  } else if (codeType === 'stock') {
+    const { purchase, transactionStatus, quantity } = req.body;
     const stockPayload = {
       Person: 34419,
       Purchase: parseInt(purchase, 10),
@@ -254,9 +240,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
 
     reqStock.write(JSON.stringify(stockPayload));
     reqStock.end();
-
-   // Default: all fields expected in query
-  {
+  } else {
     const {
       receivingGroup,
       customString1,
@@ -286,7 +270,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     };
 
     try {
-      // 1. Create the call
       const createRes = await axios.post(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?Login_Token=${access_token}`,
         callPayload,
@@ -297,6 +280,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
           }
         }
       );
+
       const ref = createRes.data.Ref;
       if (!ref) {
         return res.status(500).send(
@@ -304,7 +288,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
         );
       }
 
-      // 2. Submit the call
       const submitRes = await axios.put(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
         null,
