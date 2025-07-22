@@ -556,7 +556,7 @@ app.get('/api/call/:ref', async (req, res) => {
         if (result.success) {
             res.json({
                 success: true,
-                 result.data,
+                data: result.data,
                 timestamp: new Date().toISOString()
             });
         } else {
