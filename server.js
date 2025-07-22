@@ -299,7 +299,7 @@ async function makeApiCall(endpoint, method = 'GET', data = null, retries = conf
             // CORRECTED: Fixed object literal syntax
             const result = {
                 success: true,
-                 response.data,
+                data: response.data,
                 status: response.status,
                 headers: response.headers
             };
@@ -526,7 +526,7 @@ app.post('/api/make-call', validateCallData, handleValidationErrors, async (req,
                 success: true,
                 message: responseMessage,
                 callRef: callRef,
-                 result.data,
+                data: result.data,
                 timestamp: new Date().toISOString()
             });
 
@@ -599,7 +599,7 @@ app.get('/api/calls', async (req, res) => {
         if (result.success) {
             res.json({
                 success: true,
-                 result.data,
+                data: result.data,
                 pagination: {
                     limit: parseInt(limit),
                     offset: parseInt(offset)
