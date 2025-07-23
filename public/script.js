@@ -32,7 +32,9 @@ function getParam(param, defaultValue = null) {
 function setupUI() {
   const validTypes = ['call', 'stock', 'inf'];
   const codeType = getParam('codeType', 'call');
-  if (!validTypes.includes(codeType)) {
+if (!validTypes.includes(codeType)) {
+  showResponse('Invalid codeType specified in URL.', 'danger');
+  return;
     window.location.href = 'https://fhnhs.alembacloud.com/production/portal.aspx';
     return;
   }
