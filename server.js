@@ -120,10 +120,12 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   const validTypes = ['call', 'stock', 'inf'];
   
   if (!validTypes.includes(codeType)) {
-    return res.status(400).json({ message: 'Invalid codeType' });
+    return res.status(400).json({ message: 'Invalid codeType. Must be: call, inf, or stock' });
   }
 
   try {
+    console.log(`ðŸ“¡ Processing ${codeType} request...`);
+    
     // Handle different codeTypes
     if (codeType === 'call') {
       await handleCallType(req, res);
@@ -133,21 +135,46 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
       await handleStockType(req, res);
     }
   } catch (error) {
-    console.error('âŒ Error in make-call:', error);
+    console.error(`âŒ Error in make-call (${codeType}):`, error);
     res.status(500).json({ 
       message: error.response?.data?.Message || error.message || 'Unknown error occurred'
     });
   }
 });
 
-// Handle codeType=call
+// Handle codeType=call - FIXED VERSION
 async function handleCallType(req, res) {
-  const { receivingGroup, customString1, configurationItemId, description, type, impact, urgency } = req.query;
+  console.log('ðŸ”„ Handling codeType=call');
+  
+  // Extract parameters from query string - NOTE: configurationItemId with lowercase 'd'
+  const { 
+    receivingGroup, 
+    customString1, 
+    configurationItemId,  // âœ… CRITICAL: lowercase 'd' at the end
+    description, 
+    type, 
+    impact, 
+    urgency 
+  } = req.query;
 
-  // Validate required parameters
-  if (!receivingGroup || !customString1 || !configurationItemId || !description || !type || !impact || !urgency) {
-    return res.status(400).json({ message: 'Missing required parameters for call type' });
+  // Validate ALL required parameters
+  const missing = [];
+  if (!receivingGroup) missing.push('receivingGroup');
+  if (!customString1) missing.push('customString1');
+  if (!configurationItemId) missing.push('configurationItemId');
+  if (!description) missing.push('description');
+  if (!type) missing.push('type');
+  if (!impact) missing.push('impact');
+  if (!urgency) missing.push('urgency');
+
+  if (missing.length > 0) {
+    console.log('âŒ Missing parameters for call type:', missing);
+    return res.status(400).json({ 
+      message: `Missing required parameters for call type: ${missing.join(', ')}`
+    });
   }
+
+  console.log('âœ… All call parameters present, creating payload...');
 
   const callPayload = {
     Description: description,
@@ -163,18 +190,42 @@ async function handleCallType(req, res) {
     User: 34419
   };
 
+  console.log('ðŸ“¤ Creating and submitting call...');
   const ref = await createAndSubmitCall(callPayload);
+  
+  console.log(`âœ… Call completed successfully with ref: ${ref}`);
   res.json({ message: 'Call created and submitted successfully', callRef: ref });
 }
 
-// Handle codeType=inf
+// Handle codeType=inf - FIXED VERSION  
 async function handleInfType(req, res) {
-  const { receivingGroup, customString1, configurationItemId, type, impact, urgency } = req.query;
+  console.log('ðŸ”„ Handling codeType=inf');
+  
+  const { 
+    receivingGroup, 
+    customString1, 
+    configurationItemId,  // âœ… CRITICAL: lowercase 'd'
+    type, 
+    impact, 
+    urgency 
+  } = req.query;
   const description = req.body.description;
 
   // Validate required parameters
-  if (!receivingGroup || !customString1 || !configurationItemId || !type || !impact || !urgency || !description) {
-    return res.status(400).json({ message: 'Missing required parameters for inf type' });
+  const missing = [];
+  if (!receivingGroup) missing.push('receivingGroup');
+  if (!customString1) missing.push('customString1');
+  if (!configurationItemId) missing.push('configurationItemId');
+  if (!type) missing.push('type');
+  if (!impact) missing.push('impact');
+  if (!urgency) missing.push('urgency');
+  if (!description) missing.push('description');
+
+  if (missing.length > 0) {
+    console.log('âŒ Missing parameters for inf type:', missing);  
+    return res.status(400).json({ 
+      message: `Missing required parameters for inf type: ${missing.join(', ')}`
+    });
   }
 
   const callPayload = {
@@ -192,6 +243,7 @@ async function handleInfType(req, res) {
   };
 
   // Create the call first
+  console.log('ðŸ“¤ Creating call for inf type...');
   const createRes = await axios.post(
     `${API_BASE_URL}/alemba.api/api/v2/call?Login_Token=${access_token}`,
     callPayload,
@@ -208,8 +260,11 @@ async function handleInfType(req, res) {
     throw new Error('Call created but no Ref returned');
   }
 
+  console.log(`âœ… Call created with ref: ${ref}`);
+
   // Handle attachment if present
   if (req.file) {
+    console.log('ðŸ“Ž Processing attachment...');
     const attachmentPath = req.file.path;
     const form = new FormData();
     form.append('file', fs.createReadStream(attachmentPath));
@@ -225,6 +280,8 @@ async function handleInfType(req, res) {
       }
     );
 
+    console.log('âœ… Attachment uploaded successfully');
+
     // Clean up uploaded file
     fs.unlink(attachmentPath, (err) => {
       if (err) console.warn('âš ï¸  Could not delete temp file:', attachmentPath);
@@ -232,6 +289,7 @@ async function handleInfType(req, res) {
   }
 
   // Submit the call
+  console.log('ðŸ“¤ Submitting call...');
   await axios.put(
     `${API_BASE_URL}/alemba.api/api/v2/call/${ref}/submit?Login_Token=${access_token}`,
     null,
@@ -242,17 +300,28 @@ async function handleInfType(req, res) {
     }
   );
 
+  console.log(`âœ… Call submitted successfully with ref: ${ref}`);
   res.json({ message: 'Call created and submitted successfully', callRef: ref });
 }
 
-// Handle codeType=stock
+// Handle codeType=stock - FIXED VERSION
 async function handleStockType(req, res) {
+  console.log('ðŸ”„ Handling codeType=stock');
+  
   const { purchase, transactionStatus } = req.query;
   const quantity = req.body.quantity;
 
   // Validate required parameters
-  if (!purchase || !transactionStatus || !quantity) {
-    return res.status(400).json({ message: 'Missing required parameters for stock type' });
+  const missing = [];
+  if (!purchase) missing.push('purchase');
+  if (!transactionStatus) missing.push('transactionStatus');
+  if (!quantity) missing.push('quantity');
+
+  if (missing.length > 0) {
+    console.log('âŒ Missing parameters for stock type:', missing);
+    return res.status(400).json({ 
+      message: `Missing required parameters for stock type: ${missing.join(', ')}`
+    });
   }
 
   const payload = {
@@ -260,6 +329,8 @@ async function handleStockType(req, res) {
     TransactionStatus: parseInt(transactionStatus, 10),
     Quantity: parseInt(quantity, 10)
   };
+
+  console.log('ðŸ“¤ Creating inventory allocation...');
 
   // Create inventory allocation
   const createRes = await axios.post(
@@ -278,7 +349,10 @@ async function handleStockType(req, res) {
     throw new Error('Inventory allocation created but no Ref returned');
   }
 
+  console.log(`âœ… Inventory allocation created with ref: ${ref}`);
+
   // Submit the inventory allocation
+  console.log('ðŸ“¤ Submitting inventory allocation...');
   await axios.put(
     `${API_BASE_URL}/alemba.api/api/v2/inventory-allocation/${ref}/submit?Login_Token=${access_token}`,
     null,
@@ -289,6 +363,7 @@ async function handleStockType(req, res) {
     }
   );
 
+  console.log(`âœ… Stock updated successfully with ref: ${ref}`);
   res.json({ message: 'Stock updated successfully', callRef: ref });
 }
 
@@ -329,4 +404,5 @@ async function createAndSubmitCall(payload) {
 app.listen(PORT, () => {
   console.log(`ðŸš€ Server running on port ${PORT}`);
   console.log(`ðŸ“± Mobile-first UI ready for deployment`);
+  console.log(`âœ… All codeTypes supported: call, inf, stock`);
 });
