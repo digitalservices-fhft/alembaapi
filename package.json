@@ -1,10 +1,11 @@
 {
   "name": "APIAlembaApp",
-  "version": "2.0.2",
-  "description": "Digital Services Node.js app",
+  "version": "2.1.0",
+  "description": "Digital Services Node.js app for Alemba API integration",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -13,7 +14,10 @@
     "multer": "^2.0.0",
     "form-data": "^4.0.4"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
   "engines": {
     "node": ">=20.0.0"
-  }
+ },
 }
