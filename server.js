@@ -93,10 +93,11 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   }
 
   const codeType = req.query.codeType || req.body.codeType;
-  const validTypes = ['call', 'stock', 'inf'];
+  const validTypes = ['call', 'stock', 'inf'];  
   if (!validTypes.includes(codeType)) {
-    return res.redirect('https://fhnhs.alembacloud.com/production/portal.aspx');
-  }
+  return res.status(400).send('Invalid codeType');
+}
+
 
   if (codeType === 'inf') {
     const { receivingGroup, customString1, configurationItemId, type, impact, urgency } = req.query;
