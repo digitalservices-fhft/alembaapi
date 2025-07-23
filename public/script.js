@@ -23,7 +23,7 @@ async function initializeApp() {
     btn.style.display = 'block'; // Show the button
     btn.addEventListener('click', handleButtonClick); // Bind click handler
   } catch (err) {
-    showResponse(`Failed to initialize app: ${err.message}`, 'danger');
+    showResponse(`Failed to initialise app: ${err.message}`, 'danger');
   }
 }
 
@@ -60,12 +60,10 @@ function setupUI() {
     heading.textContent = 'If you are seeing this you have not passed the correct title parameter!';
   }
 
-  if (boardTitle) {
-    const heading = document.querySelector('h1.mb-4');
-    if (heading) heading.textContent = boardTitle;
+  if (boardTitle && heading) {
+    heading.textContent = boardTitle;
   }
 
-  // Display image based on title keyword match
   if (boardTitle && imageContainer) {
     imageContainer.innerHTML = '';
     const keyword = Object.keys(imageMap).find(k =>
@@ -83,7 +81,6 @@ function setupUI() {
     }
   }
 
-  // Show/hide form sections based on codeType
   const infFields = document.getElementById('infFields');
   const stockFields = document.getElementById('stockFields');
 
@@ -109,16 +106,11 @@ function setupUI() {
       stockFields.style.display = 'none';
   }
 
-  // Add file name preview for image input
   const imageInput = document.getElementById('imageInput');
   const fileName = document.getElementById('fileName');
   if (imageInput && fileName) {
     imageInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        fileName.textContent = e.target.files[0].name;
-      } else {
-        fileName.textContent = '';
-      }
+      fileName.textContent = e.target.files.length > 0 ? e.target.files[0].name : '';
     });
   }
 }
@@ -130,19 +122,49 @@ async function handleButtonClick() {
 
   try {
     if (codeType === 'inf') {
-      await submitInfo(); // Submit information with optional file
+      await submitInfo();
     } else if (codeType === 'stock') {
-      await submitStock(); // Submit stock update
+      await submitStock();
     } else {
-      await submitCall(); // Submit a general call
+      await submitCall();
     }
   } catch (err) {
     showResponse(`Submission error: ${err.message}`, 'danger');
   }
 }
 
+// Submits a general call using query parameters
+async function submitCall() {
+  const token = await fetchToken();
+  const btn = document.getElementById('callApiBtn');
+  if (btn) btn.style.display = 'none';
+  showProgressBar();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const url = `/make-call?${urlParams.toString()}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  hideProgressBar();
+  const result = await res.json();
+  if (res.ok) {
+    showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
+  } else {
+    throw new Error(result.message || 'Unknown error');
+  }
+}
+
 // Submits an information call with optional image attachment
 async function submitInfo() {
+  const token = await fetchToken();
+  const btn = document.getElementById('callApiBtn');
+  if (btn) btn.style.display = 'none';
+  showProgressBar();
+
   const description = document.getElementById('descriptionInput').value;
   const imageFile = document.getElementById('imageInput').files[0];
 
@@ -157,10 +179,6 @@ async function submitInfo() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
-
-  showProgressBar();
-
-  const token = await fetchToken();
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -171,9 +189,7 @@ async function submitInfo() {
 
   hideProgressBar();
   const result = await res.json();
-
   if (res.ok) {
-    document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
   } else {
     throw new Error(result.message || 'Unknown error');
@@ -182,8 +198,12 @@ async function submitInfo() {
 
 // Submits a stock update request
 async function submitStock() {
-  const quantity = document.getElementById('quantityInput').value;
+  const token = await fetchToken();
+  const btn = document.getElementById('callApiBtn');
+  if (btn) btn.style.display = 'none';
+  showProgressBar();
 
+  const quantity = document.getElementById('quantityInput').value;
   if (!quantity) {
     showResponse('Quantity is required.', 'danger');
     return;
@@ -193,9 +213,6 @@ async function submitStock() {
   const url = `/make-call?${urlParams.toString()}`;
   const payload = { quantity };
 
-  showProgressBar();
-
-  const token = await fetchToken();
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -207,36 +224,8 @@ async function submitStock() {
 
   hideProgressBar();
   const result = await res.json();
-
   if (res.ok) {
-    document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Stock updated, ref: **${result.callRef}**`, 'success');
-  } else {
-    throw new Error(result.message || 'Unknown error');
-  }
-}
-
-// Submits a general call using query parameters
-async function submitCall() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const url = `/make-call?${urlParams.toString()}`;
-
-  showProgressBar();
-
-  const token = await fetchToken();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  hideProgressBar();
-  const result = await res.json();
-
-  if (res.ok) {
-    document.getElementById('callApiBtn').style.display = 'none';
-    showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
   } else {
     throw new Error(result.message || 'Unknown error');
   }
