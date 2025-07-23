@@ -737,8 +737,7 @@ select.form-control {
     format('woff2');
 }
 
-/* END PERPLEXITY DESIGN SYSTEM */
-```css
+
 /* Global reset and base styles - using design system variables */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -837,7 +836,6 @@ textarea {
   align-items: center;
   justify-content: center;
 }
-
 .btn:hover, .btn:focus {
   background-color: var(--color-primary-hover);
 }
@@ -890,6 +888,39 @@ pre#responseOutput {
   max-width: 100%;
   border: 1px solid var(--color-card-border);
 }
+
+
+/* Photo Upload button - Centered and Custom Color */
+.photo-upload-btn {
+  background-color: #FFB81C !important;
+  color: #333 !important;
+  height: 56px;
+  font-size: 1.15rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-align: center;
+}
+
+.photo-upload-btn:hover,
+.photo-upload-btn:active,
+.photo-upload-btn:focus {
+  background-color: #FFB81C !important;
+  color: #333 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 184, 28, 0.3);
+  outline: none;
+}
+
+.photo-upload-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(255, 184, 28, 0.3);
+}
+
 
 /* Alerts aligned with status indicators from design system */
 .alert {
