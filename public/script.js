@@ -3,13 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
 
-// Will hold the token retrieved from the server
-let accessToken = '';
-
 // Define imageMap for stock items
 const imageMap = {
   smartcard: "smartcardkeyboard.png",
-  docking: "dockingstation.png", 
+  docking: "dockingstation.png",
   mouse: "mouse.png",
   barcode: "scanner.png",
   keyboard: "keyboard.png",
@@ -18,16 +15,15 @@ const imageMap = {
   monitor: "monitor.png"
 };
 
-// Initialises the app: fetches token, sets up UI, and binds button click
+// Initialises the app: sets up UI and binds button click
 async function initializeApp() {
   try {
-    accessToken = await fetchToken(); // Get access token from server
     setupUI(); // Adjust UI based on query parameters
     const btn = document.getElementById('callApiBtn');
-    btn.style.display = 'block'; // Show the button once token is ready
+    btn.style.display = 'block'; // Show the button
     btn.addEventListener('click', handleButtonClick); // Bind click handler
   } catch (err) {
-    showResponse(`Failed to retrieve token: ${err.message}`, 'danger');
+    showResponse(`Failed to initialize app: ${err.message}`, 'danger');
   }
 }
 
@@ -49,7 +45,7 @@ function getParam(param, defaultValue = null) {
 function setupUI() {
   const validTypes = ['call', 'stock', 'inf'];
   const codeType = getParam('codeType', 'call');
-  
+
   if (!validTypes.includes(codeType)) {
     showResponse('Invalid codeType specified in URL.', 'danger');
     return;
@@ -59,7 +55,7 @@ function setupUI() {
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
   const heading = document.querySelector('h1.mb-4');
-  
+
   if (!boardTitle && heading) {
     heading.textContent = 'If you are seeing this you have not passed the correct title parameter!';
   }
@@ -90,7 +86,7 @@ function setupUI() {
   // Show/hide form sections based on codeType
   const infFields = document.getElementById('infFields');
   const stockFields = document.getElementById('stockFields');
-  
+
   switch (codeType) {
     case 'call':
       btn.textContent = 'Let us know!';
@@ -131,7 +127,7 @@ function setupUI() {
 async function handleButtonClick() {
   hideResponse();
   const codeType = getParam('codeType', 'call');
-  
+
   try {
     if (codeType === 'inf') {
       await submitInfo(); // Submit information with optional file
@@ -149,7 +145,7 @@ async function handleButtonClick() {
 async function submitInfo() {
   const description = document.getElementById('descriptionInput').value;
   const imageFile = document.getElementById('imageInput').files[0];
-  
+
   if (!description) {
     showResponse('Description is required.', 'danger');
     return;
@@ -157,21 +153,25 @@ async function submitInfo() {
 
   const formData = new FormData();
   formData.append('description', description);
-  if (imageFile) formData.append('attachment', imageFile); // âœ… FIXED: Now matches server expectation
-  
+  if (imageFile) formData.append('attachment', imageFile);
+
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
-  
+
   showProgressBar();
-  
+
+  const token = await fetchToken();
   const res = await fetch(url, {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
   });
-  
+
   hideProgressBar();
   const result = await res.json();
-  
+
   if (res.ok) {
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
@@ -183,29 +183,31 @@ async function submitInfo() {
 // Submits a stock update request
 async function submitStock() {
   const quantity = document.getElementById('quantityInput').value;
-  
+
   if (!quantity) {
     showResponse('Quantity is required.', 'danger');
     return;
   }
-  
+
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
   const payload = { quantity };
-  
+
   showProgressBar();
-  
+
+  const token = await fetchToken();
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   });
-  
+
   hideProgressBar();
   const result = await res.json();
-  
+
   if (res.ok) {
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Stock updated, ref: **${result.callRef}**`, 'success');
@@ -218,16 +220,20 @@ async function submitStock() {
 async function submitCall() {
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/make-call?${urlParams.toString()}`;
-  
+
   showProgressBar();
-  
+
+  const token = await fetchToken();
   const res = await fetch(url, {
     method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
-  
+
   hideProgressBar();
   const result = await res.json();
-  
+
   if (res.ok) {
     document.getElementById('callApiBtn').style.display = 'none';
     showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
@@ -240,10 +246,10 @@ async function submitCall() {
 function showProgressBar() {
   const responseBox = document.getElementById('responseOutput');
   responseBox.innerHTML = `
-    <div class="progress">
-      <div class="progress-bar progress-bar-striped progress-bar-animated" 
-           style="width:100%"></div>
-    </div>`;
+<div class="progress">
+  <div class="progress-bar progress-bar-striped progress-bar-animated"
+    style="width:100%"></div>
+</div>`;
 }
 
 // Hides the progress bar
