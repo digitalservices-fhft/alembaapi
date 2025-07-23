@@ -1,4 +1,4 @@
-// Wait for the DOM to be fully loaded
+// Wait for the DOM to be fully loaded before running the app
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
@@ -36,7 +36,6 @@ function setupUI() {
     window.location.href = 'https://fhnhs.alembacloud.com/production/portal.aspx';
     return;
   }
-  const codeType = getParam('codeType', 'call');
   const btn = document.getElementById('callApiBtn');
   const imageContainer = document.getElementById('image-container');
   const boardTitle = getParam('title');
@@ -94,7 +93,6 @@ function setupUI() {
 }
 // Handles the main button click and routes to the appropriate submission function
 async function handleButtonClick() {
-  const codeType = getParam('codeType', 'call');
   hideResponse();
 
   try {
