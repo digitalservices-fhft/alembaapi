@@ -1,4 +1,4 @@
-// Wait for the DOM to be fully loaded before running the app
+// Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
