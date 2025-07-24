@@ -166,7 +166,8 @@ async function submitInfo() {
   showProgressBar();
 
   const description = document.getElementById('descriptionInput').value;
-  const imageFile = document.getElementById('imageInput').files[0];
+  const imageControl = document.getElementById('imageInput');
+  const imageFile    = imageControl ? imageControl.files[0] : null;
 
   if (!description) {
     showResponse('Description is required.', 'danger');
