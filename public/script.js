@@ -106,10 +106,10 @@ function setupUI() {
       stockFields.style.display = 'none';
   }
 
-  const imageInput = document.getElementById('imageInput');
-  const fileName = document.getElementById('fileName');
-  if (imageInput && fileName) {
-    imageInput.addEventListener('change', (e) => {
+  const imageControl = document.getElementById('imageInput');
+  const imageFile    = imageControl ? imageControl.files[0] : null;
+  if (imageControl && fileName) {
+    imageControl.addEventListener('change', (e) => {
       fileName.textContent = e.target.files.length > 0 ? e.target.files[0].name : '';
     });
   }
@@ -191,7 +191,7 @@ async function submitInfo() {
   hideProgressBar();
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
+    showResponse(`Success 🎉 your reference is: <strong>${result.callRef}</strong>`, 'success');
   } else {
     throw new Error(result.message || 'Unknown error');
   }
@@ -226,7 +226,7 @@ async function submitStock() {
   hideProgressBar();
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Stock updated, ref: **${result.callRef}**`, 'success');
+    showResponse(`Success 🎉 your reference is: <strong>${result.callRef}</strong>`, 'success');
   } else {
     throw new Error(result.message || 'Unknown error');
   }
