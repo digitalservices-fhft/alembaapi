@@ -2,12 +2,12 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const express = require('express');
+const cors = require('cors');
 const multer = require('multer');
 const FormData = require('form-data');
 const axios = require('axios');
 const qs = require('querystring');
 const helmet = require('helmet');
-
 require('dotenv').config();
 
 const {
@@ -27,23 +27,38 @@ const {
 
 const upload = multer({
   dest: 'uploads/',
-  limits: { fileSize: 5_000_000 },          // 5 MB
+  limits: { fileSize: 5_000_000 }, // 5 MB
   fileFilter: (_, file, cb) => {
     const ok = /jpeg|jpg|png|gif/.test(file.mimetype);
     cb(null, ok);
   }
 });
 
-//Static files
 const app = express();
+
+const allowedOrigins = [
+  'https://alembaapi-test.onrender.com',
+  'https://qrcodeapp-wbey.onrender.com',
+  'https://digitalservices.frimleyhealth.nhs.uk'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(helmet());
 app.use(express.static('public', { extensions: ['html'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* -------------------------------------------------- */
-/* OAuth token helper                                 */
-/* -------------------------------------------------- */
 const getFreshToken = async () => {
   const postData = qs.stringify({
     grant_type: 'password',
@@ -83,9 +98,6 @@ const getFreshToken = async () => {
   });
 };
 
-/* -------------------------------------------------- */
-/* Routes                                             */
-/* -------------------------------------------------- */
 app.get('/get-token', async (_req, res) => {
   try {
     res.json({ access_token: await getFreshToken() });
@@ -100,7 +112,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   if (!valid.includes(codeType)) {
     return res.status(400).json({ message: 'Invalid codeType.' });
   }
-
   try {
     const token = await getFreshToken();
     if (codeType === 'call') return handleCall(req, res, token);
@@ -112,9 +123,6 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   }
 });
 
-/* -------------------------------------------------- */
-/* Helper: build axios instance                       */
-/* -------------------------------------------------- */
 const api = (token) =>
   axios.create({
     baseURL: `${API_BASE_URL}/alemba.api/api/v2/`,
@@ -122,9 +130,6 @@ const api = (token) =>
     timeout: 30_000
   });
 
-/* -------------------------------------------------- */
-/* Handlers                                           */
-/* -------------------------------------------------- */
 async function handleCall(req, res, token) {
   const required = [
     'receivingGroup',
@@ -139,7 +144,6 @@ async function handleCall(req, res, token) {
   if (missing.length) {
     return res.status(400).json({ message: `Missing: ${missing.join(', ')}` });
   }
-
   const payload = {
     Description: req.query.description,
     DescriptionHtml: `<p>${req.query.description}</p>`,
@@ -153,7 +157,6 @@ async function handleCall(req, res, token) {
     ConfigurationItemId: +req.query.configurationItemId,
     User: 34419
   };
-
   const ref = (await api(token).post('call', payload)).data.Ref;
   await api(token).put(`call/${ref}/submit`);
   res.json({ message: 'Call created.', callRef: ref });
@@ -172,7 +175,6 @@ async function handleInf(req, res, token) {
   if (missing.length || !req.body.description) {
     return res.status(400).json({ message: `Missing: ${missing.join(', ')} or description` });
   }
-
   const payload = {
     Description: req.body.description,
     DescriptionHtml: `<p>${req.body.description}</p>`,
@@ -186,22 +188,23 @@ async function handleInf(req, res, token) {
     ConfigurationItemId: +req.query.configurationItemId,
     User: 34419
   };
-
   const ref = (await api(token).post('call', payload)).data.Ref;
-
   if (req.file) {
     const form = new FormData();
     form.append('attachment', fs.createReadStream(req.file.path), {
       filename: req.file.originalname,
       contentType: req.file.mimetype
     });
-    await axios.post(`${API_BASE_URL}/alemba.api/api/v2/call/${ref}/attachments`, form, {
-      headers: { ...form.getHeaders(), Authorization: `Bearer ${token}` },
-      maxBodyLength: Infinity
-    });
+    await axios.post(
+      `${API_BASE_URL}/alemba.api/api/v2/call/${ref}/attachments`,
+      form,
+      {
+        headers: { ...form.getHeaders(), Authorization: `Bearer ${token}` },
+        maxBodyLength: Infinity
+      }
+    );
     fs.unlink(req.file.path, () => {});
   }
-
   await api(token).put(`call/${ref}/submit`);
   res.json({ message: 'Info call created.', callRef: ref });
 }
@@ -216,17 +219,14 @@ async function handleStock(req, res, token) {
   if (missing.length) {
     return res.status(400).json({ message: `Missing: ${missing.join(', ')}` });
   }
-
   const payload = {
     Purchase: +purchase,
     TransactionStatus: +transactionStatus,
     Quantity: +quantity
   };
-
   const ref = (await api(token).post('inventory-allocation', payload)).data.Ref;
   await api(token).put(`inventory-allocation/${ref}/submit`);
   res.json({ message: 'Stock updated.', callRef: ref });
 }
 
-/* -------------------------------------------------- */
-app.listen(PORT, () => console.log(`🚀  Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
