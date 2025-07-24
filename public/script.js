@@ -1,9 +1,7 @@
 /* global FormData */
 document.addEventListener('DOMContentLoaded', () => initializeApp());
 
-/* -------------------------------------------------- */
-/* Globals                                            */
-/* -------------------------------------------------- */
+/* Globals */
 const imageMap = {
   smartcard: 'smartcardkeyboard.png',
   docking: 'dockingstation.png',
@@ -15,9 +13,7 @@ const imageMap = {
   monitor: 'monitor.png'
 };
 
-/* -------------------------------------------------- */
-/* Init                                               */
-/* -------------------------------------------------- */
+/* Init */
 async function initializeApp() {
   try {
     applyQueryToUI();
@@ -29,9 +25,7 @@ async function initializeApp() {
   }
 }
 
-/* -------------------------------------------------- */
-/* Helpers                                            */
-/* -------------------------------------------------- */
+/* Helpers */
 const el = (id) => document.getElementById(id);
 const qs = (key, d = null) =>
   new URLSearchParams(window.location.search).get(key) ?? d;
@@ -45,23 +39,21 @@ function applyQueryToUI() {
   const codeType = qs('codeType', 'call').toLowerCase();
   const title = qs('title');
   const heading = el('boardTitle');
-
-  if (title) heading.textContent = title;
-  else heading.textContent = 'Missing title parameter';
+  if (heading) heading.textContent = title || 'Missing title parameter';
 
   // Show image if keyword matches
- if (codeType === 'stock') {
-const keyword = Object.keys(imageMap).find((k) =>
-title?.toLowerCase().includes(k)
- );
-if (keyword) {
-const img = new Image();
-img.src = `img/${imageMap[keyword]}`;
-img.alt = keyword;
-img.className = 'img-fluid d-block mx-auto';
-heading.after(img);
- }
-}
+  if (codeType === 'stock') {
+    const keyword = Object.keys(imageMap).find((k) =>
+      title?.toLowerCase().includes(k)
+    );
+    if (keyword) {
+      const img = new Image();
+      img.src = `img/${imageMap[keyword]}`;
+      img.alt = keyword;
+      img.className = 'img-fluid d-block mx-auto';
+      heading?.after(img);
+    }
+  }
 
   // Toggle field sets
   el('infFields').classList.toggle('hidden', codeType !== 'inf');
@@ -73,23 +65,19 @@ heading.after(img);
     codeType === 'call'
       ? 'Let us know!'
       : codeType === 'inf'
-        ? 'Submit'
-        : 'Update stock';
+      ? 'Submit'
+      : 'Update stock';
 }
 
-/* -------------------------------------------------- */
-/* Submission orchestrator                            */
-/* -------------------------------------------------- */
+/* Submission orchestrator */
 async function handleButtonClick() {
   try {
     hideResponse();
     showProgressBar();
-
     const codeType = qs('codeType', 'call');
     if (codeType === 'inf') await submitInf();
     else if (codeType === 'stock') await submitStock();
     else await submitCall();
-
     hideProgressBar();
   } catch (e) {
     hideProgressBar();
@@ -97,14 +85,10 @@ async function handleButtonClick() {
   }
 }
 
-/* -------------------------------------------------- */
-/* Token helper                                       */
-/* -------------------------------------------------- */
+/* Token helper */
 const fetchToken = () => api('/get-token').then((d) => d.access_token);
 
-/* -------------------------------------------------- */
-/* Sub-flows                                          */
-/* -------------------------------------------------- */
+/* Sub-flows */
 async function submitCall() {
   const token = await fetchToken();
   const url = `/make-call?${new URLSearchParams(window.location.search)}`;
@@ -119,12 +103,10 @@ async function submitInf() {
   const token = await fetchToken();
   const description = el('descriptionInput').value.trim();
   if (!description) throw new Error('Description required');
-
   const fd = new FormData();
   fd.append('description', description);
   const file = el('imageInput').files[0];
   if (file) fd.append('attachment', file);
-
   const url = `/make-call?${new URLSearchParams(window.location.search)}`;
   const out = await api(url, {
     method: 'POST',
@@ -138,7 +120,6 @@ async function submitStock() {
   const token = await fetchToken();
   const quantity = el('quantityInput').value;
   if (!quantity) throw new Error('Quantity required');
-
   const url = `/make-call?${new URLSearchParams(window.location.search)}`;
   const out = await api(url, {
     method: 'POST',
@@ -151,9 +132,7 @@ async function submitStock() {
   showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
 }
 
-/* -------------------------------------------------- */
-/* UI feedback helpers                                */
-/* -------------------------------------------------- */
+/* UI feedback helpers */
 function showResponse(msg, kind = 'info') {
   const box = el('responseOutput');
   box.style.display = 'block';
@@ -172,10 +151,10 @@ function showProgressBar() {
   const box = el('responseOutput');
   box.style.display = 'block';
   box.innerHTML = `
-    <div class="progress">
-      <div class="progress-bar progress-bar-striped progress-bar-animated"
-           style="width:100%"></div>
-    </div>`;
+  <div class="progress">
+    <div class="progress-bar progress-bar-striped progress-bar-animated"
+    style="width:100%"></div>
+  </div>`;
   el('callApiBtn').classList.add('hidden');
   el('callApiBtn').setAttribute('aria-busy', 'true');
 }

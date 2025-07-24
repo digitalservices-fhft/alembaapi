@@ -57,12 +57,13 @@ app.use(cors({
 
 app.use(helmet());
 
-// CSP header setup
+// CSP header
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' https://ajax.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; " +
     "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+    "font-src 'self' https://r2cdn.perplexity.ai; " +
     "img-src 'self' data:; " +
     "connect-src 'self';"
   );
