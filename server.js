@@ -4,6 +4,7 @@ const https = require('https');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 const FormData = require('form-data');
 const axios = require('axios');
 const qs = require('querystring');

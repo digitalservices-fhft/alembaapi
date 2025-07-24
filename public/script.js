@@ -1,7 +1,7 @@
 /* global FormData */
-document.addEventListener('DOMContentLoaded', () => initializeApp());
+document.addEventListener('DOMContentLoaded', initializeApp);
 
-/* Globals */
+/* Map keywords to image filenames */
 const imageMap = {
   smartcard: 'smartcardkeyboard.png',
   docking: 'dockingstation.png',
@@ -10,14 +10,17 @@ const imageMap = {
   keyboard: 'keyboard.png',
   rover: 'rover.png',
   powermic: 'powermic.png',
-  monitor: 'monitor.png'
+  monitor: 'monitor.png',
 };
 
-/* Init */
+/* Production base URL (injected via Render env var) */
+const API_BASE = process.env.API_BASE_URL || '';
+
+/* Initialize UI */
 async function initializeApp() {
   try {
     applyQueryToUI();
-    const btn = el('callApiBtn');
+    const btn = document.getElementById('callApiBtn');
     btn.classList.remove('hidden');
     btn.onclick = handleButtonClick;
   } catch (err) {
@@ -29,51 +32,41 @@ async function initializeApp() {
 const el = (id) => document.getElementById(id);
 const qs = (key, d = null) =>
   new URLSearchParams(window.location.search).get(key) ?? d;
-const api = (path, opts) => fetch(path, opts).then(async (r) => {
-  const body = await r.json();
-  if (!r.ok) throw new Error(body.message);
-  return body;
-});
+const api = (url, opts) =>
+  fetch(url, opts).then(async (r) => {
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.message);
+    return body;
+  });
 
+/* Populate title and image */
 function applyQueryToUI() {
   const codeType = qs('codeType', 'call').toLowerCase();
-  const title = qs('title');
+  const title = qs('title') || 'Missing title parameter';
   const heading = el('boardTitle');
-  if (heading) heading.textContent = title || 'Missing title parameter';
+  heading.textContent = title;
 
-  // Show image if keyword matches
   if (codeType === 'stock') {
-    const keyword = Object.keys(imageMap)
-      .find(k => title?.toLowerCase().includes(k));
+    const keyword = Object.keys(imageMap).find((k) =>
+      title.toLowerCase().includes(k)
+    );
     if (keyword) {
       const img = new Image();
       img.src = `img/${imageMap[keyword]}`;
       img.alt = keyword;
       img.className = 'img-fluid d-block mx-auto';
-
-      // Append to #image-container instead of after heading
       const container = el('image-container');
-      if (container) {
-        container.innerHTML = '';       // clear any previous image
-        container.appendChild(img);
-      }
+      container.innerHTML = '';
+      container.appendChild(img);
     }
   }
 
-  // Toggle field sets
   el('infFields').classList.toggle('hidden', codeType !== 'inf');
   el('stockFields').classList.toggle('hidden', codeType !== 'stock');
-
-  // Button label
-  const btn = el('callApiBtn');
-  btn.textContent = codeType === 'call'
-    ? 'Let us know!'
-    : codeType === 'inf'
-      ? 'Submit'
-      : 'Update stock';
+  el('callFields').classList.toggle('hidden', codeType !== 'call');
 }
 
-/* Submission orchestrator */
+/* Handle button click */
 async function handleButtonClick() {
   try {
     hideResponse();
@@ -82,24 +75,28 @@ async function handleButtonClick() {
     if (codeType === 'inf') await submitInf();
     else if (codeType === 'stock') await submitStock();
     else await submitCall();
-    hideProgressBar();
   } catch (e) {
     hideProgressBar();
     showResponse(`⛔️ ${e.message}`, 'danger');
   }
 }
 
-/* Token helper */
-const fetchToken = () => api('/get-token').then((d) => d.access_token);
+/* Fetch auth token */
+const fetchToken = () =>
+  api(`${API_BASE}/alemba.api/api/v2/token`, { method: 'GET' }).then(
+    (d) => d.access_token
+);
 
 /* Sub-flows */
 async function submitCall() {
   const token = await fetchToken();
-  const url = `/make-call?${new URLSearchParams(window.location.search)}`;
+  const params = new URLSearchParams(window.location.search);
+  const url = `${API_BASE}/alemba.api/api/v2/call?${params}`;
   const out = await api(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
+  hideProgressBar();
   showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
 }
 
@@ -111,12 +108,15 @@ async function submitInf() {
   fd.append('description', description);
   const file = el('imageInput').files[0];
   if (file) fd.append('attachment', file);
-  const url = `/make-call?${new URLSearchParams(window.location.search)}`;
+
+  const params = new URLSearchParams(window.location.search);
+  const url = `${API_BASE}/alemba.api/api/v2/call?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    body: fd
+    body: fd,
   });
+  hideProgressBar();
   showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
 }
 
@@ -124,25 +124,26 @@ async function submitStock() {
   const token = await fetchToken();
   const quantity = el('quantityInput').value;
   if (!quantity) throw new Error('Quantity required');
-  const url = `/make-call?${new URLSearchParams(window.location.search)}`;
+  const params = new URLSearchParams(window.location.search);
+  const url = `${API_BASE}/alemba.api/api/v2/inventory-allocation?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ quantity })
+    body: JSON.stringify({ quantity }),
   });
-  showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
+  hideProgressBar();
+  showResponse(`🎉 Success! Ref **${out.allocationRef}**`, 'success');
 }
 
-/* UI feedback helpers */
+/* UI feedback */
 function showResponse(msg, kind = 'info') {
   const box = el('responseOutput');
   box.style.display = 'block';
   box.className = `alert alert-${kind}`;
   box.innerHTML = msg;
-  el('callApiBtn').classList.remove('hidden');
 }
 
 function hideResponse() {
@@ -154,17 +155,9 @@ function hideResponse() {
 function showProgressBar() {
   const box = el('responseOutput');
   box.style.display = 'block';
-  box.innerHTML = `
-  <div class="progress">
-    <div class="progress-bar progress-bar-striped progress-bar-animated"
-    style="width:100%"></div>
-  </div>`;
-  el('callApiBtn').classList.add('hidden');
-  el('callApiBtn').setAttribute('aria-busy', 'true');
+  box.innerHTML = `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>`;
 }
 
 function hideProgressBar() {
-  const box = el('responseOutput');
-  if (box) box.style.display = 'none';
-  el('callApiBtn').removeAttribute('aria-busy');
+  el('responseOutput').style.display = 'none';
 }
