@@ -234,6 +234,7 @@ async function submitStock() {
 // Shows a Bootstrap progress bar in the response output
 function showProgressBar() {
   const responseBox = document.getElementById('responseOutput');
+  responseBox.style.display = 'block';
   responseBox.innerHTML = `
 <div class="progress">
   <div class="progress-bar progress-bar-striped progress-bar-animated"
@@ -245,11 +246,13 @@ function showProgressBar() {
 function hideProgressBar() {
   const responseBox = document.getElementById('responseOutput');
   responseBox.innerHTML = '';
+  responseBox.style.display = 'none;'
 }
 
 // Shows a response message with Bootstrap alert styling
 function showResponse(message, type = 'info') {
   const responseBox = document.getElementById('responseOutput');
+  responseBox.style.display = 'block';
   responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
 }
 
@@ -257,4 +260,5 @@ function showResponse(message, type = 'info') {
 function hideResponse() {
   const responseBox = document.getElementById('responseOutput');
   responseBox.innerHTML = '';
+  responseBox.style.display = 'none';
 }
