@@ -35,6 +35,33 @@ const upload = multer({
   }
 });
 
+// Set up Content Security Policy
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        'https://ajax.googleapis.com',
+        'https://cdn.jsdelivr.net'
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        'https://cdn.jsdelivr.net'
+      ],
+      fontSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  })
+);
+
+//Static files
 const app = express();
 app.use(helmet());
 app.use(express.static('public', { extensions: ['html'] }));
