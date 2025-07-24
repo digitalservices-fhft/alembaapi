@@ -36,6 +36,7 @@ const upload = multer({
 
 const app = express();
 
+// CORS setup
 const allowedOrigins = [
   'https://alembaapi-test.onrender.com',
   'https://qrcodeapp-wbey.onrender.com',
@@ -55,6 +56,19 @@ app.use(cors({
 }));
 
 app.use(helmet());
+
+// CSP header setup
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' https://ajax.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; " +
+    "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self';"
+  );
+  next();
+});
+
 app.use(express.static('public', { extensions: ['html'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
