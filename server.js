@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -9,7 +8,7 @@ const axios = require('axios');
 const qs = require('querystring');
 const helmet = require('helmet');
 
-require('dotenv').config(); // optional .env support
+require('dotenv').config();
 
 const {
   PORT = 3000,
@@ -34,32 +33,6 @@ const upload = multer({
     cb(null, ok);
   }
 });
-
-// Set up Content Security Policy
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        'https://ajax.googleapis.com',
-        'https://cdn.jsdelivr.net'
-      ],
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        'https://cdn.jsdelivr.net'
-      ],
-      fontSrc: ["'self'", 'https://cdn.jsdelivr.net'],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      frameAncestors: ["'none'"],
-      upgradeInsecureRequests: [],
-    },
-  })
-);
 
 //Static files
 const app = express();
