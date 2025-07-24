@@ -42,7 +42,7 @@ const api = (path, opts) => fetch(path, opts).then(async (r) => {
 });
 
 function applyQueryToUI() {
-  const codeType = qs('codeType', 'call');
+  const codeType = qs('codeType', 'call').toLowerCase();
   const title = qs('title');
   const heading = el('boardTitle');
 
@@ -50,16 +50,18 @@ function applyQueryToUI() {
   else heading.textContent = 'Missing title parameter';
 
   // Show image if keyword matches
-  const keyword = Object.keys(imageMap).find((k) =>
-    title?.toLowerCase().includes(k)
-  );
-  if (keyword) {
-    const img = new Image();
-    img.src = `img/${imageMap[keyword]}`;
-    img.alt = keyword;
-    img.className = 'img-fluid d-block mx-auto';
-    heading.after(img);
-  }
+ if (codeType === 'stock') {
+const keyword = Object.keys(imageMap).find((k) =>
+title?.toLowerCase().includes(k)
+ );
+if (keyword) {
+const img = new Image();
+img.src = `img/${imageMap[keyword]}`;
+img.alt = keyword;
+img.className = 'img-fluid d-block mx-auto';
+heading.after(img);
+ }
+}
 
   // Toggle field sets
   el('infFields').classList.toggle('hidden', codeType !== 'inf');
