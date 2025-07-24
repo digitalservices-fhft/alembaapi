@@ -202,7 +202,7 @@ async function handleInf(req, res, token) {
       console.error('Attachment upload failed:', {
         status: attachmentError.response?.status,
         statusText: attachmentError.response?.statusText,
-         attachmentError.response?.data,
+        data: attachmentError.response?.data,
         message: attachmentError.message
       });
     } finally {
