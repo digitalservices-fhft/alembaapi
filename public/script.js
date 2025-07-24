@@ -180,12 +180,6 @@ async function submitInfo() {
     return;
   }
 
-  const formData = new FormData();
-  formData.append('description', description);
-  if (imageFile) formData.append('attachment', imageFile);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const res = await fetch(`/make-call?${urlParams}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData
@@ -273,8 +267,8 @@ async function submitStock() {
 // Shows a Bootstrap progress bar in the response output
 function showProgressBar() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.style.display = 'block';
-  responseBox.innerHTML = `
+  box.style.display = 'block';
+  box.innerHTML = `
 <div class="progress">
   <div class="progress-bar progress-bar-striped progress-bar-animated"
     style="width:100%"></div>
@@ -284,20 +278,20 @@ function showProgressBar() {
 // Hides the progress bar
 function hideProgressBar() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = '';
-  responseBox.style.display = 'none;'
+  box.innerHTML = '';
+  box.style.display = 'none;'
 }
 
 // Shows a response message with Bootstrap alert styling
 function showResponse(message, type = 'info') {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.style.display = 'block';
-  responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+  box.style.display = 'block';
+  box.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
 }
 
 // Hides the response message
 function hideResponse() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = '';
-  responseBox.style.display = 'none';
+  box.innerHTML = '';
+  box.style.display = 'none';
 }
