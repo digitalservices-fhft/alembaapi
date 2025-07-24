@@ -989,11 +989,6 @@ pre#responseOutput {
   }
 }
 
-/* Hide optional sections by default */
-#stockFields, #infFields {
-  display: none;
-}
-
 /* Image styling */
 .img-fluid {
   max-width: 100%;
