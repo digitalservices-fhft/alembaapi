@@ -318,6 +318,7 @@ body {
 *::after {
   box-sizing: inherit;
 }
+.hidden { display: none !important; }
 
 /* Typography */
 h1,
@@ -951,7 +952,7 @@ pre#responseOutput {
 
 /* Progress bar */
 .progress {
-  height: 8px;
+  height: 6px;
   background-color: var(--color-secondary);
   border-radius: var(--radius-sm);
   overflow: hidden;
