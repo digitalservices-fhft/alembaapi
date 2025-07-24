@@ -43,15 +43,20 @@ function applyQueryToUI() {
 
   // Show image if keyword matches
   if (codeType === 'stock') {
-    const keyword = Object.keys(imageMap).find((k) =>
-      title?.toLowerCase().includes(k)
-    );
+    const keyword = Object.keys(imageMap)
+      .find(k => title?.toLowerCase().includes(k));
     if (keyword) {
       const img = new Image();
       img.src = `img/${imageMap[keyword]}`;
       img.alt = keyword;
       img.className = 'img-fluid d-block mx-auto';
-      heading?.after(img);
+
+      // Append to #image-container instead of after heading
+      const container = el('image-container');
+      if (container) {
+        container.innerHTML = '';       // clear any previous image
+        container.appendChild(img);
+      }
     }
   }
 
@@ -61,10 +66,9 @@ function applyQueryToUI() {
 
   // Button label
   const btn = el('callApiBtn');
-  btn.textContent =
-    codeType === 'call'
-      ? 'Let us know!'
-      : codeType === 'inf'
+  btn.textContent = codeType === 'call'
+    ? 'Let us know!'
+    : codeType === 'inf'
       ? 'Submit'
       : 'Update stock';
 }
