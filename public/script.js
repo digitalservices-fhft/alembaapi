@@ -23,7 +23,7 @@ async function initializeApp() {
     btn.style.display = 'block'; // Show the button
     btn.addEventListener('click', handleButtonClick); // Bind click handler
   } catch (err) {
-    showResponse(`Failed to initialise app: ${err.message}`, 'danger');
+    showResponse(`⛔️ Failed to initialise app: ${err.message}`, 'danger');
   }
 }
 
@@ -47,7 +47,7 @@ function setupUI() {
   const codeType = getParam('codeType', 'call');
 
   if (!validTypes.includes(codeType)) {
-    showResponse('Invalid codeType specified in URL.', 'danger');
+    showResponse('⛔️ Invalid codeType specified in URL.', 'danger');
     return;
   }
 
@@ -57,7 +57,7 @@ function setupUI() {
   const heading = document.querySelector('h1.mb-4');
 
   if (!boardTitle && heading) {
-    heading.textContent = 'If you are seeing this you have not passed the correct title parameter!';
+    heading.textContent = '⛔️ If you are seeing this you have not passed the correct title parameter!';
   }
 
   if (boardTitle && heading) {
@@ -77,7 +77,7 @@ function setupUI() {
       img.onerror = () => (img.style.display = 'none');
       imageContainer.appendChild(img);
     } else {
-      imageContainer.textContent = 'No matching image found.';
+      imageContainer.textContent = '⛔️ No matching image found.';
     }
   }
 
@@ -129,7 +129,7 @@ async function handleButtonClick() {
       await submitCall();
     }
   } catch (err) {
-    showResponse(`Submission error: ${err.message}`, 'danger');
+    showResponse(`⛔️ Submission error: ${err.message}`, 'danger');
   }
 }
 
@@ -152,9 +152,9 @@ async function submitCall() {
   hideProgressBar();
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Call submitted, ref: **${result.callRef}**`, 'success');
+    showResponse(`🎉 Success! Your reference is: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || '⛔️ Whoops! Unknown error');
   }
 }
 
@@ -163,16 +163,52 @@ async function submitInfo() {
   const token = await fetchToken();
   const btn = document.getElementById('callApiBtn');
   if (btn) btn.style.display = 'none';
-  showProgressBar();
-
-  const description = document.getElementById('descriptionInput').value;
-  const imageControl = document.getElementById('imageInput');
-  const imageFile    = imageControl ? imageControl.files[0] : null;
+  // 1. hide the “Add photo” label / attachment button
+  const attachmentBtn = document.querySelector('.photo-upload-btn');
+  if (attachmentBtn) attachmentBtn.style.display = 'none';
+  // 2. lock the description so users can’t edit mid-submission
+  const descInput = document.getElementById('descriptionInput');
+  if (descInput) descInput.readOnly = true;
+  
+  const description = descInput ? descInput.value.trim() : '';
+  const imageInput  = document.getElementById('imageInput');
+  const imageFile   = imageInput && imageInput.files ? imageInput.files[0] : null;
 
   if (!description) {
-    showResponse('Description is required.', 'danger');
+    hideProgressBar();
+    showResponse('⛔️ Whoops! Description is required.', 'danger');
     return;
   }
+
+  const formData = new FormData();
+  formData.append('description', description);
+  if (imageFile) formData.append('attachment', imageFile);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const res = await fetch(`/make-call?${urlParams}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
+  });
+
+  hideProgressBar();
+
+  const result = await res.json();
+  if (res.ok) {
+    showResponse(`🎉 Success! Your reference is: <strong>${result.callRef}</strong>`, 'success');
+
+    // optional: reset UI for another submission
+    if (attachmentBtn) attachmentBtn.style.display = '';
+    if (descInput) descInput.readOnly = false;
+    if (imageInput) imageInput.value = '';
+  } else {
+    showResponse(`Submission error: ${result.message || '⛔️ Whoops! Unknown error'}`, 'danger');
+
+    // re-enable controls so the user can retry
+    if (attachmentBtn) attachmentBtn.style.display = '';
+    if (descInput) descInput.readOnly = false;
+  }
+}
 
   const formData = new FormData();
   formData.append('description', description);
@@ -191,10 +227,12 @@ async function submitInfo() {
   hideProgressBar();
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Success 🎉 your reference is: <strong>${result.callRef}</strong>`, 'success');
-  } else {
-    throw new Error(result.message || 'Unknown error');
-  }
+    showResponse(`🎉 Success! Your reference is: <strong>${result.callRef}</strong>`, 'success');
+    if (fileBadge)  fileBadge.style.display = 'none';
+  if (fileName)   fileName.textContent = '';
+  if (imageInput) imageInput.value = '';
+} else {
+  throw new Error(result.message || '⛔️ Whoops! Unknown error');
 }
 
 // Submits a stock update request
@@ -206,7 +244,7 @@ async function submitStock() {
 
   const quantity = document.getElementById('quantityInput').value;
   if (!quantity) {
-    showResponse('Quantity is required.', 'danger');
+    showResponse('⛔️ Whoops! Quantity is required.', 'danger');
     return;
   }
 
@@ -226,17 +264,17 @@ async function submitStock() {
   hideProgressBar();
   const result = await res.json();
   if (res.ok) {
-    showResponse(`Success 🎉 your reference is: <strong>${result.callRef}</strong>`, 'success');
+    showResponse(`🎉 Success! Your reference is: <strong>${result.callRef}</strong>`, 'success');
   } else {
-    throw new Error(result.message || 'Unknown error');
+    throw new Error(result.message || '⛔️ Whoops! Unknown error');
   }
 }
 
 // Shows a Bootstrap progress bar in the response output
 function showProgressBar() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.style.display = 'block';
-  responseBox.innerHTML = `
+  box.style.display = 'block';
+  box.innerHTML = `
 <div class="progress">
   <div class="progress-bar progress-bar-striped progress-bar-animated"
     style="width:100%"></div>
@@ -246,20 +284,20 @@ function showProgressBar() {
 // Hides the progress bar
 function hideProgressBar() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = '';
-  responseBox.style.display = 'none;'
+  box.innerHTML = '';
+  box.style.display = 'none;'
 }
 
 // Shows a response message with Bootstrap alert styling
 function showResponse(message, type = 'info') {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.style.display = 'block';
-  responseBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+  box.style.display = 'block';
+  box.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
 }
 
 // Hides the response message
 function hideResponse() {
   const responseBox = document.getElementById('responseOutput');
-  responseBox.innerHTML = '';
-  responseBox.style.display = 'none';
+  box.innerHTML = '';
+  box.style.display = 'none';
 }
