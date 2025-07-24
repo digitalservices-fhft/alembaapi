@@ -202,7 +202,7 @@ async function submitInfo() {
     if (descInput) descInput.readOnly = false;
     if (imageInput) imageInput.value = '';
   } else {
-    showResponse(`Submission error: ${result.message || '⛔️ Whoops! Unknown error'}`, 'danger');
+    showResponse(`⛔️ Submission error: ${result.message || '⛔️ Whoops! Unknown error'}`, 'danger');
 
     // re-enable controls so the user can retry
     if (attachmentBtn) attachmentBtn.style.display = '';
