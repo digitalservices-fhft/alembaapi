@@ -34,9 +34,9 @@ function applyQueryToUI() {
 
   const title = qs('title') || 'Missing title parameter';
   const heading = el('boardTitle');
-  heading.textContent = title;
+  if (heading) heading.textContent = title;
 
-  if (codeType === 'stock') {
+    if (codeType === 'stock') {
     const keyword = Object.keys(imageMap).find((k) =>
       title.toLowerCase().includes(k)
     );
@@ -46,14 +46,21 @@ function applyQueryToUI() {
       img.alt = keyword;
       img.className = 'img-fluid d-block mx-auto';
       const container = el('image-container');
-      container.innerHTML = '';
-      container.appendChild(img);
+      if (container) {
+        container.innerHTML = '';
+        container.appendChild(img);
+      }
     }
   }
 
-  el('infFields').classList.toggle('hidden', codeType !== 'inf');
-  el('stockFields').classList.toggle('hidden', codeType !== 'stock');
-  el('callFields').classList.toggle('hidden', codeType !== 'call');
+  const infFields = el('infFields');
+  if (infFields) infFields.classList.toggle('hidden', codeType !== 'inf');
+
+  const stockFields = el('stockFields');
+  if (stockFields) stockFields.classList.toggle('hidden', codeType !== 'stock');
+
+  const callFields = el('callFields');
+  if (callFields) callFields.classList.toggle('hidden', codeType !== 'call');
 }
 
 /* Handle button click */
