@@ -1,4 +1,4 @@
-// Helper functions (declare before use)
+// Helper functions
 const el = id => document.getElementById(id);
 const qs = (key, defaultValue = null) => {
   const params = new URLSearchParams(window.location.search);
@@ -10,163 +10,151 @@ const api = async (path, opts = {}) => {
   return response.json();
 };
 
-/* Map keywords to image filenames */
+// Image map
 const imageMap = {
-  smartcard: 'smartcardkeyboard.png',
-  docking: 'dockingstation.png',
-  mouse: 'mouse.png',
-  barcode: 'scanner.png',
-  keyboard: 'keyboard.png',
-  rover: 'rover.png',
-  powermic: 'powermic.png',
-  monitor: 'monitor.png',
+  smartcard: "smartcardkeyboard.png",
+  docking: "dockingstation.png",
+  mouse: "mouse.png",
+  barcode: "scanner.png",
+  keyboard: "keyboard.png",
+  rover: "rover.png",
+  powermic: "powermic.png",
+  monitor: "monitor.png"
 };
 
-/* Initialize UI */
+// UI initialization
 async function initializeApp() {
   try {
     applyQueryToUI();
-    const btn = document.getElementById('callApiBtn');
-    btn.classList.remove('hidden');
+    const btn = el("callApiBtn");
+    btn.classList.remove("hidden");
     btn.onclick = handleButtonClick;
   } catch (err) {
-    showResponse(`⛔️ ${err.message}`, 'danger');
+    showResponse(`⛔️ ${err.message}`, "danger");
   }
 }
 
-/* Populate title and image */
+// Apply query parameters to UI
 function applyQueryToUI() {
-  const rawCodeType = qs('codeType');
-  const codeType = rawCodeType ? rawCodeType.toLowerCase() : '';
-  const title = qs('title') || 'Missing title parameter';
-  const heading = document.querySelector('h1.mb-4.text-center');
-  if (heading) {
-    heading.textContent = title;
-  }
+  const codeType = (qs("codeType") || "").toLowerCase();
+  const title = qs("title") || "Missing title parameter";
+  const heading = document.querySelector("h1.mb-4.text-center");
+  if (heading) heading.textContent = title;
 
-  if (codeType === 'stock') {
-    const keyword = Object.keys(imageMap).find((k) =>
-      title.toLowerCase().includes(k)
-    );
+  if (codeType === "stock") {
+    const keyword = Object.keys(imageMap).find(k => title.toLowerCase().includes(k));
     if (keyword) {
       const img = new Image();
       img.src = `img/${imageMap[keyword]}`;
       img.alt = keyword;
-      img.className = 'img-fluid d-block mx-auto';
-      const container = el('image-container');
+      img.className = "img-fluid d-block mx-auto";
+      const container = el("image-container");
       if (container) {
-        container.innerHTML = '';
+        container.innerHTML = "";
         container.appendChild(img);
       }
     }
   }
 
-  const infFields = el('infFields');
-  if (infFields) infFields.classList.toggle('hidden', codeType !== 'inf');
-
-  const stockFields = el('stockFields');
-  if (stockFields) stockFields.classList.toggle('hidden', codeType !== 'stock');
-
-  const callFields = el('callFields');
-  if (callFields) callFields.classList.toggle('hidden', codeType !== 'call');
+  el("infFields").classList.toggle("hidden", codeType !== "inf");
+  el("stockFields").classList.toggle("hidden", codeType !== "stock");
+  el("callFields").classList.toggle("hidden", codeType !== "call");
 }
 
-/* Handle button click */
+// Button click handler
 async function handleButtonClick() {
   try {
     hideResponse();
     showProgressBar();
-    const codeType = qs('codeType', 'call');
-    if (codeType === 'inf') await submitInf();
-    else if (codeType === 'stock') await submitStock();
+    const codeType = qs("codeType", "call");
+    if (codeType === "inf") await submitInf();
+    else if (codeType === "stock") await submitStock();
     else await submitCall();
   } catch (e) {
     hideProgressBar();
-    showResponse(`⛔️ ${e.message}`, 'danger');
+    showResponse(`⛔️ ${e.message}`, "danger");
   }
 }
 
-// Bootstrap application after DOM ready
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Token fetch
+const fetchToken = () => api("/get-token", { method: "GET" }).then(d => d.access_token);
 
-/* Fetch auth token */
-const fetchToken = () =>
-  api(`/get-token`, { method: 'GET' }).then((d) => d.access_token);
-
-/* Sub-flows */
+// Submit call
 async function submitCall() {
   const token = await fetchToken();
   const params = new URLSearchParams(window.location.search);
   const url = `/make-call?${params}&codeType=call`;
   const out = await api(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
   });
   hideProgressBar();
-  showResponse(`🎉 Success! Your ref is:</strong>${out.callRef}</strong>`, 'success');
+  showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
 }
 
-
+// Submit inf
 async function submitInf() {
   const token = await fetchToken();
-  const description = el('descriptionInput').value;
-  if (!description) throw new Error('Description is required');
-  const formData = new FormData();
-  formData.append('description', description);
-  const fileInput = el('attachment');
-  if (fileInput && fileInput.files.length > 0) {
-    formData.append('attachment', fileInput.files[0]);
-  }
+  const description = el("descriptionInput").value;
+  if (!description) throw new Error("Description required");
+
+  const attachment = el("attachmentInput").files[0];
   const params = new URLSearchParams(window.location.search);
+  const formData = new FormData();
+  formData.append("description", description);
+  if (attachment) formData.append("attachment", attachment);
+
   const url = `/make-call?${params}&codeType=inf`;
   const out = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData
-  }).then(res => res.json());
+  }).then(r => r.json());
+
   hideProgressBar();
-  showResponse(`🎉 Success! Your ref is:</strong>${out.callRef}</strong>`, 'success');
+  showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
 }
 
-
+// Submit stock
 async function submitStock() {
   const token = await fetchToken();
-  const quantity = el('quantityInput').value;
-  if (!quantity) throw new Error('Quantity required');
+  const quantity = el("quantityInput").value;
+  if (!quantity) throw new Error("Quantity required");
+
   const params = new URLSearchParams(window.location.search);
-  const url = `/inventory-allocation?${params}`;
+  const url = `/make-call?${params}&codeType=stock`;
   const out = await api(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ quantity }),
+    body: JSON.stringify({ Quantity: +quantity })
   });
   hideProgressBar();
-  showResponse(`🎉 Success! Your ref is:</strong>${out.allocationRef}</strong>`, 'success');
+  showResponse(`🎉 Success! Your ref is: <strong>${out.allocationRef}</strong>`, "success");
 }
 
-/* UI feedback */
-function showResponse(msg, kind = 'info') {
-  const box = el('responseOutput');
-  box.style.display = 'block';
+// UI feedback
+function showResponse(msg, kind = "info") {
+  const box = el("responseOutput");
+  box.style.display = "block";
   box.className = `alert alert-${kind}`;
   box.innerHTML = msg;
 }
-
 function hideResponse() {
-  const box = el('responseOutput');
-  box.style.display = 'none';
-  box.textContent = '';
+  const box = el("responseOutput");
+  box.style.display = "none";
+  box.textContent = "";
 }
-
 function showProgressBar() {
-  const box = el('responseOutput');
-  box.style.display = 'block';
+  const box = el("responseOutput");
+  box.style.display = "block";
   box.innerHTML = `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>`;
 }
-
 function hideProgressBar() {
-  el('responseOutput').style.display = 'none';
+  el("responseOutput").style.display = "none";
 }
+
+// Start app
+document.addEventListener("DOMContentLoaded", initializeApp);

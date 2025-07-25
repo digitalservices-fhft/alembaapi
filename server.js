@@ -150,6 +150,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     const token = await getFreshToken();
     if (codeType === 'call') return handleCall(req, res, token);
     if (codeType === 'inf') return handleInf(req, res, token);
+    if (codeType === 'stock') return handleStock(req, res, token);
     return handleStock(req, res, token);
   } catch (e) {
     console.error(e);
