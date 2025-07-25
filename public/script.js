@@ -35,15 +35,15 @@ async function initializeApp() {
 
 /* Populate title and image */
 function applyQueryToUI() {
-  const codeType = qs('codeType', 'call').toLowerCase();
+  const rawCodeType = qs('codeType');
+  const codeType = (typeof rawCodeType === 'string' ? rawCodeType : 'call').toLowerCase();
   const title = qs('title') || 'Missing title parameter';
+
   const heading = el('boardTitle');
   heading.textContent = title;
 
   if (codeType === 'stock') {
-    const keyword = Object.keys(imageMap).find((k) =>
-      title.toLowerCase().includes(k)
-    );
+    const keyword = Object.keys(imageMap).find(k => title.toLowerCase().includes(k));
     if (keyword) {
       const img = new Image();
       img.src = `img/${imageMap[keyword]}`;
