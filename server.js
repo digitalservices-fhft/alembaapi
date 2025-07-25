@@ -42,7 +42,7 @@ const app = express();
 const allowedOrigins = [
   'https://alembaapi-test.onrender.com',
   'https://qrcodeapp-wbey.onrender.com',
-  'https://digitalservices.frimleyhealth.nhs.uk'
+  'https://digitalservices.frimleyhealth.nhs.uk',
   'https://fhnhs.alembacloud.com'
 ];
 
