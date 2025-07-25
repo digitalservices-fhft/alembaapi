@@ -1,7 +1,15 @@
 // Helper functions (declare before use)
-const el    = id => document.getElementById(id);
-const qs    = (key, defaultValue = null) => { /* … */ };
-const api   = async (path, opts = {}) => { /* … */ };
+const el = id => document.getElementById(id);
+const qs = (key, defaultValue = null) => {
+  const params = new URLSearchParams(window.location.search);
+  return params.has(key) ? params.get(key) : defaultValue;
+};
+
+const api = async (path, opts = {}) => {
+  const response = await fetch(path, opts);
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  return response.json();
+};
 
 /* Map keywords to image filenames */
 const imageMap = {
