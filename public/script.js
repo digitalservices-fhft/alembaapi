@@ -1,15 +1,22 @@
-// Read API_BASE_URL from <meta>
+// Read API_BASE_URL from meta tag
 const API_BASE = (() => {
   const tag = document.querySelector('meta[name="api-base-url"]');
   return (tag && tag.content) || '';
 })();
 
 // Helper functions (declare before use)
-const el    = id => document.getElementById(id);
-const qs    = (key, defaultValue = null) => { /* … */ };
-const api   = async (path, opts = {}) => { /* … */ };
+const el = id => document.getElementById(id);
+const qs = (key, defaultValue = null) => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) || defaultValue;
+};
+const api = async (path, opts = {}) => {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
 
-/* Map keywords to image filenames */
+// Map keywords to image filenames
 const imageMap = {
   smartcard: 'smartcardkeyboard.png',
   docking: 'dockingstation.png',
@@ -21,26 +28,28 @@ const imageMap = {
   monitor: 'monitor.png',
 };
 
-/* Initialize UI */
+// Initialize UI
 async function initializeApp() {
   try {
     applyQueryToUI();
     const btn = document.getElementById('callApiBtn');
-    btn.classList.remove('hidden');
-    btn.onclick = handleButtonClick;
+    if (btn) {
+      btn.classList.remove('hidden');
+      btn.onclick = handleButtonClick;
+    }
   } catch (err) {
     showResponse(`⛔️ ${err.message}`, 'danger');
   }
 }
 
-/* Populate title and image */
+// Populate title and image
 function applyQueryToUI() {
   const rawCodeType = qs('codeType');
   const codeType = (typeof rawCodeType === 'string' ? rawCodeType : 'call').toLowerCase();
   const title = qs('title') || 'Missing title parameter';
 
   const heading = el('boardTitle');
-  heading.textContent = title;
+  if (heading) heading.textContent = title;
 
   if (codeType === 'stock') {
     const keyword = Object.keys(imageMap).find(k => title.toLowerCase().includes(k));
@@ -50,17 +59,23 @@ function applyQueryToUI() {
       img.alt = keyword;
       img.className = 'img-fluid d-block mx-auto';
       const container = el('image-container');
-      container.innerHTML = '';
-      container.appendChild(img);
+      if (container) {
+        container.innerHTML = '';
+        container.appendChild(img);
+      }
     }
   }
 
-  el('infFields').classList.toggle('hidden', codeType !== 'inf');
-  el('stockFields').classList.toggle('hidden', codeType !== 'stock');
-  el('callFields').classList.toggle('hidden', codeType !== 'call');
+  const inf = el('infFields');
+  const stock = el('stockFields');
+  const call = el('callFields');
+
+  if (inf) inf.classList.toggle('hidden', codeType !== 'inf');
+  if (stock) stock.classList.toggle('hidden', codeType !== 'stock');
+  if (call) call.classList.toggle('hidden', codeType !== 'call');
 }
 
-/* Handle button click */
+// Handle button click
 async function handleButtonClick() {
   try {
     hideResponse();
@@ -78,13 +93,11 @@ async function handleButtonClick() {
 // Bootstrap application after DOM ready
 document.addEventListener('DOMContentLoaded', initializeApp);
 
-/* Fetch auth token */
+// Fetch auth token
 const fetchToken = () =>
-  api(`${API_BASE}/alemba.api/api/v2/token`, { method: 'GET' }).then(
-    (d) => d.access_token
-);
+  api(`${API_BASE}/alemba.api/api/v2/token`, { method: 'GET' }).then(d => d.access_token);
 
-/* Sub-flows */
+// Sub-flows
 async function submitCall() {
   const token = await fetchToken();
   const params = new URLSearchParams(window.location.search);
@@ -99,13 +112,12 @@ async function submitCall() {
 
 async function submitInf() {
   const token = await fetchToken();
-  const description = el('descriptionInput').value.trim();
+  const description = el('descriptionInput')?.value.trim();
   if (!description) throw new Error('Description required');
   const fd = new FormData();
   fd.append('description', description);
-  const file = el('imageInput').files[0];
+  const file = el('imageInput')?.files[0];
   if (file) fd.append('attachment', file);
-
   const params = new URLSearchParams(window.location.search);
   const url = `${API_BASE}/alemba.api/api/v2/call?${params}`;
   const out = await api(url, {
@@ -119,7 +131,7 @@ async function submitInf() {
 
 async function submitStock() {
   const token = await fetchToken();
-  const quantity = el('quantityInput').value;
+  const quantity = el('quantityInput')?.value;
   if (!quantity) throw new Error('Quantity required');
   const params = new URLSearchParams(window.location.search);
   const url = `${API_BASE}/alemba.api/api/v2/inventory-allocation?${params}`;
@@ -135,26 +147,33 @@ async function submitStock() {
   showResponse(`🎉 Success! Ref **${out.allocationRef}**`, 'success');
 }
 
-/* UI feedback */
+// UI feedback
 function showResponse(msg, kind = 'info') {
   const box = el('responseOutput');
-  box.style.display = 'block';
-  box.className = `alert alert-${kind}`;
-  box.innerHTML = msg;
+  if (box) {
+    box.style.display = 'block';
+    box.className = `alert alert-${kind}`;
+    box.innerHTML = msg;
+  }
 }
 
 function hideResponse() {
   const box = el('responseOutput');
-  box.style.display = 'none';
-  box.textContent = '';
+  if (box) {
+    box.style.display = 'none';
+    box.textContent = '';
+  }
 }
 
 function showProgressBar() {
   const box = el('responseOutput');
-  box.style.display = 'block';
-  box.innerHTML = `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>`;
+  if (box) {
+    box.style.display = 'block';
+    box.innerHTML = `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div></div>`;
+  }
 }
 
 function hideProgressBar() {
-  el('responseOutput').style.display = 'none';
+  const box = el('responseOutput');
+  if (box) box.style.display = 'none';
 }
