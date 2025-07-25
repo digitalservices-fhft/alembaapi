@@ -1,14 +1,19 @@
-/* Helpers */
+// Injected environment variable
+const API_BASE = (() => {
+  const tag = document.querySelector('meta[name="api-base-url"]');
+  return (tag && tag.content) || '';
+})();
+
+// Helper functions
 const el = id => document.getElementById(id);
 const qs = (key, defaultValue = null) => {
   const params = new URLSearchParams(window.location.search);
   return params.get(key) || defaultValue;
 };
 const api = async (path, opts = {}) => {
-  const url = window.API_BASE + path;
-  const response = await fetch(url, opts);
+  const response = await fetch(API_BASE + path, opts);
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw new Error(`API error: ${response.status}`);
   }
   return response.json();
 };
@@ -66,11 +71,6 @@ function applyQueryToUI() {
   el('stockFields').classList.toggle('hidden', codeType !== 'stock');
   el('callFields').classList.toggle('hidden', codeType !== 'call');
 }
-// expose API_BASE_URL
-window.API_BASE = document {
-      .querySelector('meta[name="api-base-url"]')
-      .content || '';
-      };
 
 /* Handle button click */
 async function handleButtonClick() {
