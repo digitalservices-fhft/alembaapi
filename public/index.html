@@ -30,7 +30,7 @@
       <label class="form-label" for="descriptionInput">Describe the issue</label>
       <textarea id="descriptionInput" class="form-control" placeholder="Describe the issue…" maxlength="1000"></textarea>
       <label class="sr-only" for="attachmentInput">Add photo</label>
-      <input type="file" accept="image/*" id="attachmentInput" class="hidden" />
+      <input type="file" id="attachmentInput" name="attachment" accept="image/*" class="form-control" class="hidden"/>
       <button type="button" class="btn btn-outline-primary photo-upload-btn" onclick="document.getElementById('imageInput').click()">
         📷 Add photo (optional)
       </button>
