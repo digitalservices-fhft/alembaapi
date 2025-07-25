@@ -89,13 +89,13 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Fetch auth token
 const fetchToken = () =>
-  api(`${API_BASE}/alemba.api/api/v2/token`, { method: 'GET' }).then(d => d.access_token);
+  api(`${API_BASE_URL}/alemba.api/api/v2/token`, { method: 'GET' }).then(d => d.access_token);
 
 // Sub-flows
 async function submitCall() {
   const token = await fetchToken();
   const params = new URLSearchParams(window.location.search);
-  const url = `${API_BASE}/alemba.api/api/v2/call?${params}`;
+  const url = `${API_BASE_URL}/alemba.api/api/v2/call?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
@@ -113,7 +113,7 @@ async function submitInf() {
   const file = el('imageInput')?.files[0];
   if (file) fd.append('attachment', file);
   const params = new URLSearchParams(window.location.search);
-  const url = `${API_BASE}/alemba.api/api/v2/call?${params}`;
+  const url = `${API_BASE_URL}/alemba.api/api/v2/call?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
@@ -128,7 +128,7 @@ async function submitStock() {
   const quantity = el('quantityInput')?.value;
   if (!quantity) throw new Error('Quantity required');
   const params = new URLSearchParams(window.location.search);
-  const url = `${API_BASE}/alemba.api/api/v2/inventory-allocation?${params}`;
+  const url = `${API_BASE_URL}/alemba.api/api/v2/inventory-allocation?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: {
