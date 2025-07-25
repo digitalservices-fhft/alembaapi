@@ -10,6 +10,7 @@ const qs = require('querystring');
 const helmet = require('helmet');
 require('dotenv').config();
 
+
 const {
   PORT = 3000,
   CLIENT_ID,
@@ -17,11 +18,14 @@ const {
   API_PASSWORD
 } = process.env;
 
+// Validate required environment variables
+['CLIENT_ID', 'API_USERNAME', 'API_PASSWORD'].forEach((v) => {
   if (!process.env[v]) {
     console.error(`❌ Missing required environment variable: ${v}`);
     process.exit(1);
   }
 });
+
 
 const upload = multer({
   dest: 'uploads/',
