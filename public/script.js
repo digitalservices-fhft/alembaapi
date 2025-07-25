@@ -33,9 +33,10 @@ function applyQueryToUI() {
   const codeType = rawCodeType ? rawCodeType.toLowerCase() : '';
 
   const title = qs('title') || 'Missing title parameter';
-  const heading = el('boardTitle');
-  if (heading) heading.textContent = title;
-
+  const heading = document.querySelector('h1.mb-4.text-center');
+  if (heading) {
+    heading.textContent = title;
+  }
     if (codeType === 'stock') {
     const keyword = Object.keys(imageMap).find((k) =>
       title.toLowerCase().includes(k)
