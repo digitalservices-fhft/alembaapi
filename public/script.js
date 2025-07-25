@@ -1,4 +1,4 @@
-// Read API_BASE_URL from <meta> (must run after DOM is parsed)
+// Read API_BASE_URL from <meta>
 const API_BASE = (() => {
   const tag = document.querySelector('meta[name="api-base-url"]');
   return (tag && tag.content) || '';
@@ -8,9 +8,6 @@ const API_BASE = (() => {
 const el    = id => document.getElementById(id);
 const qs    = (key, defaultValue = null) => { /* … */ };
 const api   = async (path, opts = {}) => { /* … */ };
-
-// Bootstrap application after DOM ready
-document.addEventListener('DOMContentLoaded', initializeApp);
 
 /* Map keywords to image filenames */
 const imageMap = {
@@ -77,6 +74,9 @@ async function handleButtonClick() {
     showResponse(`⛔️ ${e.message}`, 'danger');
   }
 }
+
+// Bootstrap application after DOM ready
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 /* Fetch auth token */
 const fetchToken = () =>
