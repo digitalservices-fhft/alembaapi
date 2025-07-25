@@ -1095,3 +1095,24 @@ pre#responseOutput {
     color: var(--color-black);
   }
 }
+
+/* Fixed mobile layout */
+html, body {
+    width: 375px;
+    height: 667px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.container {
+    width: 375px !important;
+    height: 667px !important;
+    max-width: 375px !important;
+    max-height: 667px !important;
+    overflow: hidden;
+}
+
+.btn, input, textarea, select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
