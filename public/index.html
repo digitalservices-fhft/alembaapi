@@ -28,15 +28,10 @@
     <!-- Inf-only fields -->
     <section id="infFields" class="hidden mb-3">
       <label class="form-label" for="descriptionInput">Describe the issue</label>
-      <textarea id="descriptionInput" class="form-control"
-                placeholder="Describe the issue…" maxlength="1000"></textarea>
-
-      <label class="sr-only" for="imageInput">Add photo</label>
-      <input type="file" accept="image/*"
-             id="imageInput" class="hidden" />
-
-      <button type="button" class="btn btn-outline-primary photo-upload-btn"
-              onclick="document.getElementById('imageInput').click()">
+      <textarea id="descriptionInput" class="form-control" placeholder="Describe the issue…" maxlength="1000"></textarea>
+      <label class="sr-only" for="attachmentInput">Add photo</label>
+      <input type="file" accept="image/*" id="attachmentInput" class="hidden" />
+      <button type="button" class="btn btn-outline-primary photo-upload-btn" onclick="document.getElementById('imageInput').click()">
         📷 Add photo (optional)
       </button>
       <span id="fileName" class="d-block mt-8"></span>
@@ -61,7 +56,8 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Load App Logic -->
   <script src="script.js" defer></script>
-  </div></div><div class="hidden" id="callFields">&lt;!-- Placeholder for callFields --&gt;</div></body>
+  <!---- Placeholder for callFields -->
+  </div></div><div class="hidden" id="callFields"></div></body>
 </html>
 </body>
 </html>

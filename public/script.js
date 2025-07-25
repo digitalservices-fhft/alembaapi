@@ -56,9 +56,9 @@ function applyQueryToUI() {
     }
   }
 
-  el("infFields").classList.toggle("hidden", codeType !== "inf");
-  el("stockFields").classList.toggle("hidden", codeType !== "stock");
-  el("callFields").classList.toggle("hidden", codeType !== "call");
+  el("infFields")?.classList.toggle("hidden", codeType !== "inf");
+  el("stockFields")?.classList.toggle("hidden", codeType !== "stock");
+  el("callFields")?.classList.toggle("hidden", codeType !== "call");
 }
 
 // Button click handler
@@ -82,12 +82,37 @@ const fetchToken = () => api("/get-token", { method: "GET" }).then(d => d.access
 // Submit call
 async function submitCall() {
   const token = await fetchToken();
-  const params = new URLSearchParams(window.location.search);
-  const url = `/make-call?${params}&codeType=call`;
+
+  const receivingGroup = qs("receivingGroup");
+  const customString1 = qs("customString1");
+  const configurationItemId = qs("configurationItemId");
+  const description = el("callDescription")?.value || "";
+  const type = qs("type");
+  const impact = qs("impact");
+  const urgency = qs("urgency");
+
+  if (!receivingGroup || !customString1 || !configurationItemId || !description || !type || !impact || !urgency) {
+    throw new Error("Missing one or more required parameters for call submission.");
+  }
+
+  const params = new URLSearchParams({
+    receivingGroup,
+    customString1,
+    configurationItemId,
+    description,
+    type,
+    impact,
+    urgency,
+    codeType: "call"
+  });
+
+  const url = `/make-call?${params.toString()}`;
+
   const out = await api(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
   });
+
   hideProgressBar();
   showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
 }
@@ -95,16 +120,19 @@ async function submitCall() {
 // Submit inf
 async function submitInf() {
   const token = await fetchToken();
-  const description = el("descriptionInput").value;
+  const description = el("descriptionInput")?.value;
   if (!description) throw new Error("Description required");
 
-  const attachment = el("attachmentInput").files[0];
+  const attachmentInput = el("attachmentInput");
+  const attachment = attachmentInput?.files?.[0];
+
   const params = new URLSearchParams(window.location.search);
   const formData = new FormData();
   formData.append("description", description);
   if (attachment) formData.append("attachment", attachment);
 
-  const url = `/make-call?${params}&codeType=inf`;
+  const url = `/make-call?${params.toString()}&codeType=inf`;
+
   const out = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -118,11 +146,12 @@ async function submitInf() {
 // Submit stock
 async function submitStock() {
   const token = await fetchToken();
-  const quantity = el("quantityInput").value;
+  const quantity = el("quantityInput")?.value;
   if (!quantity) throw new Error("Quantity required");
 
   const params = new URLSearchParams(window.location.search);
-  const url = `/make-call?${params}&codeType=stock`;
+  const url = `/make-call?${params.toString()}&codeType=stock`;
+
   const out = await api(url, {
     method: "POST",
     headers: {
@@ -131,6 +160,7 @@ async function submitStock() {
     },
     body: JSON.stringify({ Quantity: +quantity })
   });
+
   hideProgressBar();
   showResponse(`🎉 Success! Your ref is: <strong>${out.allocationRef}</strong>`, "success");
 }
