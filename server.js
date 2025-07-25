@@ -38,7 +38,7 @@ const upload = multer({
 
 const app = express();
 
-// CORS setup
+// Allowed origins for CORS
 const allowedOrigins = [
   'https://alembaapi-test.onrender.com',
   'https://qrcodeapp-wbey.onrender.com',
@@ -46,17 +46,33 @@ const allowedOrigins = [
   'https://fhnhs.alembacloud.com'
 ];
 
+// CORS middleware setup with recommended changes
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'OPTIONS'],   // Added 'OPTIONS' for preflight requests
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // If cookies or credentials are used
 }));
+
+// Middleware to set Content Security Policy headers
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' https://ajax.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; " +
+    "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+    "font-src 'self' https://r2cdn.perplexity.ai; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self' https://fhnhs.alembacloud.com;"
+  );
+  next();
+});
 
 app.use(helmet());
 
@@ -227,24 +243,29 @@ async function handleInf(req, res, token) {
   res.json({ message: 'Info call created.', callRef: ref });
 }
 
-async function handleStock(req, res, token) {
-  const { purchase, transactionStatus } = req.query;
-  const { quantity } = req.body;
+async function handleInf(req, res, token) {
+  const { LinkedAsset, TransactionStatus } = req.query;
+  const { Quantity } = req.body;
+
   const missing = [];
-  if (!purchase) missing.push('purchase');
-  if (!transactionStatus) missing.push('transactionStatus');
-  if (!quantity) missing.push('quantity');
+  if (!LinkedAsset) missing.push('LinkedAsset');
+  if (!TransactionStatus) missing.push('TransactionStatus');
+  if (!Quantity) missing.push('Quantity');
+
   if (missing.length) {
     return res.status(400).json({ message: `Missing: ${missing.join(', ')}` });
   }
+
   const payload = {
-    Purchase: +purchase,
-    TransactionStatus: +transactionStatus,
-    Quantity: +quantity
+    Person: 34419,
+    LinkedAsset: +LinkedAsset,
+    Quantity: +Quantity,
+    TransactionStatus: +TransactionStatus
   };
+
   const ref = (await api(token).post('inventory-allocation', payload)).data.Ref;
   await api(token).put(`inventory-allocation/${ref}/submit`);
-  res.json({ message: 'Stock updated.', callRef: ref });
+  res.json({ message: 'Inventory allocation created.', allocationRef: ref });
 }
 
 app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));

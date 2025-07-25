@@ -4,7 +4,6 @@ const qs = (key, defaultValue = null) => {
   const params = new URLSearchParams(window.location.search);
   return params.has(key) ? params.get(key) : defaultValue;
 };
-
 const api = async (path, opts = {}) => {
   const response = await fetch(path, opts);
   if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -39,13 +38,13 @@ async function initializeApp() {
 function applyQueryToUI() {
   const rawCodeType = qs('codeType');
   const codeType = rawCodeType ? rawCodeType.toLowerCase() : '';
-
   const title = qs('title') || 'Missing title parameter';
   const heading = document.querySelector('h1.mb-4.text-center');
   if (heading) {
     heading.textContent = title;
   }
-    if (codeType === 'stock') {
+
+  if (codeType === 'stock') {
     const keyword = Object.keys(imageMap).find((k) =>
       title.toLowerCase().includes(k)
     );
@@ -92,41 +91,53 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 /* Fetch auth token */
 const fetchToken = () =>
-  api(`https://fhnhs.alembacloud.com/production/alemba.api/api/v2/token`, { method: 'GET' }).then(
-    (d) => d.access_token
-);
+  api(`/get-token`, { method: 'GET' }).then((d) => d.access_token);
 
 /* Sub-flows */
 async function submitCall() {
   const token = await fetchToken();
   const params = new URLSearchParams(window.location.search);
-  const url = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?${params}`;
+  const url = `/make-call?${params}&codeType=call`;
   const out = await api(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
   hideProgressBar();
-  showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
+  showResponse(`🎉 Success! Your ref is:</strong>${out.callRef}</strong>`, 'success');
 }
 
 async function submitInf() {
   const token = await fetchToken();
-  const description = el('descriptionInput').value.trim();
-  if (!description) throw new Error('Description required');
-  const fd = new FormData();
-  fd.append('description', description);
-  const file = el('imageInput').files[0];
-  if (file) fd.append('attachment', file);
+  const quantity = el('quantityInput').value;
+  if (!quantity) throw new Error('Quantity required');
 
   const params = new URLSearchParams(window.location.search);
-  const url = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call?${params}`;
+  const linkedAsset = params.get('LinkedAsset');
+  const transactionStatus = params.get('TransactionStatus');
+
+  if (!linkedAsset || !transactionStatus) {
+    throw new Error('Missing query parameters: LinkedAsset or TransactionStatus');
+  }
+
+  const url = `/make-call?${params}&codeType=inf`;
+  const body = {
+    Person: 34419,
+    LinkedAsset: +linkedAsset,
+    Quantity: +quantity,
+    TransactionStatus: +transactionStatus
+  };
+
   const out = await api(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: fd,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
   });
+
   hideProgressBar();
-  showResponse(`🎉 Success! Ref **${out.callRef}**`, 'success');
+  showResponse(`🎉 Success! Your ref is:</strong>${out.allocationRef}</strong>`, 'success');
 }
 
 async function submitStock() {
@@ -134,7 +145,7 @@ async function submitStock() {
   const quantity = el('quantityInput').value;
   if (!quantity) throw new Error('Quantity required');
   const params = new URLSearchParams(window.location.search);
-  const url = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/inventory-allocation?${params}`;
+  const url = `/inventory-allocation?${params}`;
   const out = await api(url, {
     method: 'POST',
     headers: {
@@ -144,7 +155,7 @@ async function submitStock() {
     body: JSON.stringify({ quantity }),
   });
   hideProgressBar();
-  showResponse(`🎉 Success! Ref **${out.allocationRef}**`, 'success');
+  showResponse(`🎉 Success! Your ref is:</strong>${out.allocationRef}</strong>`, 'success');
 }
 
 /* UI feedback */
