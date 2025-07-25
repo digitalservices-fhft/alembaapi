@@ -1,3 +1,18 @@
+/* Helpers */
+const el = id => document.getElementById(id);
+const qs = (key, defaultValue = null) => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) || defaultValue;
+};
+const api = async (path, opts = {}) => {
+  const url = window.API_BASE + path;
+  const response = await fetch(url, opts);
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+};
+
 /* global FormData */
 document.addEventListener('DOMContentLoaded', initializeApp);
 
@@ -13,9 +28,6 @@ const imageMap = {
   monitor: 'monitor.png',
 };
 
-/* Production base URL (injected via Render env var) */
-const API_BASE = process.env.API_BASE_URL || '';
-
 /* Initialize UI */
 async function initializeApp() {
   try {
@@ -27,17 +39,6 @@ async function initializeApp() {
     showResponse(`⛔️ ${err.message}`, 'danger');
   }
 }
-
-/* Helpers */
-const el = (id) => document.getElementById(id);
-const qs = (key, d = null) =>
-  new URLSearchParams(window.location.search).get(key) ?? d;
-const api = (url, opts) =>
-  fetch(url, opts).then(async (r) => {
-    const body = await r.json();
-    if (!r.ok) throw new Error(body.message);
-    return body;
-  });
 
 /* Populate title and image */
 function applyQueryToUI() {
@@ -65,6 +66,11 @@ function applyQueryToUI() {
   el('stockFields').classList.toggle('hidden', codeType !== 'stock');
   el('callFields').classList.toggle('hidden', codeType !== 'call');
 }
+// expose API_BASE_URL
+window.API_BASE = document {
+      .querySelector('meta[name="api-base-url"]')
+      .content || '';
+      };
 
 /* Handle button click */
 async function handleButtonClick() {
