@@ -29,7 +29,9 @@ async function initializeApp() {
 
 /* Populate title and image */
 function applyQueryToUI() {
-  const codeType = qs('codeType', 'call').toLowerCase();
+  const rawCodeType = qs('codeType');
+  const codeType = rawCodeType ? rawCodeType.toLowerCase() : '';
+
   const title = qs('title') || 'Missing title parameter';
   const heading = el('boardTitle');
   heading.textContent = title;
