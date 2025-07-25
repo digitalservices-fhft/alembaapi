@@ -1,24 +1,15 @@
-// Injected environment variable
+// Read API_BASE_URL from <meta> (must run after DOM is parsed)
 const API_BASE = (() => {
   const tag = document.querySelector('meta[name="api-base-url"]');
   return (tag && tag.content) || '';
 })();
 
-// Helper functions
-const el = id => document.getElementById(id);
-const qs = (key, defaultValue = null) => {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(key) || defaultValue;
-};
-const api = async (path, opts = {}) => {
-  const response = await fetch(API_BASE + path, opts);
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-  return response.json();
-};
+// Helper functions (declare before use)
+const el    = id => document.getElementById(id);
+const qs    = (key, defaultValue = null) => { /* … */ };
+const api   = async (path, opts = {}) => { /* … */ };
 
-/* global FormData */
+// Bootstrap application after DOM ready
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 /* Map keywords to image filenames */
