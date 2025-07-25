@@ -14,11 +14,9 @@ const {
   PORT = 3000,
   CLIENT_ID,
   API_USERNAME,
-  API_PASSWORD,
-  API_BASE_URL
+  API_PASSWORD
 } = process.env;
 
-['CLIENT_ID', 'API_USERNAME', 'API_PASSWORD', 'API_BASE_URL'].forEach((v) => {
   if (!process.env[v]) {
     console.error(`❌ Missing required environment variable: ${v}`);
     process.exit(1);
@@ -140,7 +138,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
 
 const api = (token) =>
   axios.create({
-    baseURL: `${API_BASE_URL}/alemba.api/api/v2/`,
+    baseURL: `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/`,
     headers: { Authorization: `Bearer ${token}` },
     timeout: 30_000
   });
@@ -211,7 +209,7 @@ async function handleInf(req, res, token) {
       contentType: req.file.mimetype
     });
     await axios.post(
-      `${API_BASE_URL}/alemba.api/api/v2/call/${ref}/attachments`,
+      `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
       form,
       {
         headers: { ...form.getHeaders(), Authorization: `Bearer ${token}` },
