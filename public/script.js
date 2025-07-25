@@ -106,39 +106,28 @@ async function submitCall() {
   showResponse(`🎉 Success! Your ref is:</strong>${out.callRef}</strong>`, 'success');
 }
 
+
 async function submitInf() {
   const token = await fetchToken();
-  const quantity = el('quantityInput').value;
-  if (!quantity) throw new Error('Quantity required');
-
-  const params = new URLSearchParams(window.location.search);
-  const linkedAsset = params.get('LinkedAsset');
-  const transactionStatus = params.get('TransactionStatus');
-
-  if (!linkedAsset || !transactionStatus) {
-    throw new Error('Missing query parameters: LinkedAsset or TransactionStatus');
+  const description = el('descriptionInput').value;
+  if (!description) throw new Error('Description is required');
+  const formData = new FormData();
+  formData.append('description', description);
+  const fileInput = el('attachment');
+  if (fileInput && fileInput.files.length > 0) {
+    formData.append('attachment', fileInput.files[0]);
   }
-
+  const params = new URLSearchParams(window.location.search);
   const url = `/make-call?${params}&codeType=inf`;
-  const body = {
-    Person: 34419,
-    LinkedAsset: +linkedAsset,
-    Quantity: +quantity,
-    TransactionStatus: +transactionStatus
-  };
-
-  const out = await api(url, {
+  const out = await fetch(url, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
+  }).then(res => res.json());
   hideProgressBar();
-  showResponse(`🎉 Success! Your ref is:</strong>${out.allocationRef}</strong>`, 'success');
+  showResponse(`🎉 Success! Your ref is:</strong>${out.callRef}</strong>`, 'success');
 }
+
 
 async function submitStock() {
   const token = await fetchToken();

@@ -150,6 +150,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     const token = await getFreshToken();
     if (codeType === 'call') return handleCall(req, res, token);
     if (codeType === 'inf') return handleInf(req, res, token);
+    if (codeType === 'stock') return handleStock(req, res, token);
     return handleStock(req, res, token);
   } catch (e) {
     console.error(e);
@@ -196,7 +197,7 @@ async function handleCall(req, res, token) {
   res.json({ message: 'Call created.', callRef: ref });
 }
 
-async function handleInf(req, res, token) {
+async function handleStock(req, res, token) {
   const required = [
     'receivingGroup',
     'customString1',
