@@ -1,9 +1,3 @@
-// Read API_BASE_URL from meta tag
-const API_BASE = (() => {
-  const tag = document.querySelector('meta[name="api-base-url"]');
-  return (tag && tag.content) || '';
-})();
-
 // Helper functions (declare before use)
 const el = id => document.getElementById(id);
 const qs = (key, defaultValue = null) => {
