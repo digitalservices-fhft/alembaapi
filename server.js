@@ -205,7 +205,6 @@ async function handleInf(req, res, token) {
     'impact',
     'urgency'
   ];
-
   const missing = required.filter(p => !req.query[p]);
   if (missing.length || !req.body.description) {
     return res.status(400).json({
@@ -227,7 +226,6 @@ async function handleInf(req, res, token) {
     ConfigurationItemId: +req.query.configurationItemId,
     User: 34419
   };
-
   let ref;
   try {
     const response = await api(token).post('call', payload);
@@ -238,19 +236,7 @@ async function handleInf(req, res, token) {
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
-  // Step 2: Take action on the call (assign to self)
-  try {
-    await api(token).put(`call/${ref}/action`, {
-      ActionType: 1, // Assign to self
-      User: 34419
-    });
-    console.log(`✅ Call ${ref} assigned to self`);
-  } catch (err) {
-    console.error('❌ Failed to assign call:', err.message);
-    return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
-  }
-
-  // Step 3: Upload the attachment (if present)
+  // Step 2: Upload the attachment (if present)
   if (req.file) {
     try {
       const form = new FormData();
@@ -258,7 +244,6 @@ async function handleInf(req, res, token) {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
-
       await axios.post(
         `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
         form,
@@ -270,7 +255,6 @@ async function handleInf(req, res, token) {
           maxBodyLength: Infinity
         }
       );
-
       fs.unlink(req.file.path, () => {});
       console.log(`✅ Attachment uploaded for call ${ref}`);
     } catch (uploadError) {
@@ -281,6 +265,16 @@ async function handleInf(req, res, token) {
     console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
 
+  // Step 3: Submit the call
+  try {
+    await api(token).put(`call/${ref}/submit`);
+    console.log(`✅ Call ${ref} submitted`);
+    res.json({ message: 'Info call created.', callRef: ref });
+  } catch (submitError) {
+    console.error('❌ Call submission failed:', submitError.message);
+    res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
+  }
+}
 // codeType=stock handler
 async function handleInventoryAllocation(req, res, token) {
   const { purchase } = req.query;
@@ -304,5 +298,6 @@ async function handleInventoryAllocation(req, res, token) {
   await api(token).put(`inventory-allocation/${ref}/submit`);
   res.json({ message: 'Inventory allocation created.', allocationRef: ref });
 }
+
 app.use(express.static('public', { extensions: ['html'] }));
 app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));

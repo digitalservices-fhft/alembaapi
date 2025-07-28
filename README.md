@@ -2,7 +2,6 @@
 
 NODE.JS Application - Based on URL parameters will perform verious calls to the Alemba API
 
-
 **Set the codeType**
 
 | Parameter Name  | Purpose |
@@ -19,7 +18,7 @@ NODE.JS Application - Based on URL parameters will perform verious calls to the 
 
 For transactions the tile will display the appropriate inventory image type.
 
-Images should be around 250px high and in .png format with transparent backgrounds.
+Images should be around 150px high and in .png format with transparent backgrounds.
 
 | keyword  | Image | Description |
 | ------------- | ------------- |------------- |
@@ -56,6 +55,7 @@ Images should be around 250px high and in .png format with transparent backgroun
 | urgency  | Integer | Adds the call urgency.|
 
 description is used on the HTML form.
+Attachment added via HTML 
 
 **URL Parameters Available for inventory transaction**
 
@@ -63,3 +63,5 @@ description is used on the HTML form.
 | ------------- | ------------- |------------- |
 | purchase | Integer  | Order record for the transaction. |
 | transactionStatus | Integer | Provides the status of the transaction for the inventory item. On Hand, In Use etc etc||
+
+quantity is used on the HTML form
