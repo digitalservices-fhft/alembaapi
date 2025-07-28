@@ -237,7 +237,19 @@ async function handleInf(req, res, token) {
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
-  // Step 2: Upload the attachment (if present)
+  // Step 2: Assign the call to self (lock it)
+  try {
+    await api(token).put(`call/${ref}/action`, {
+      ActionType: 1,
+      User: 34419
+    });
+    console.log(`✅ Call ${ref} assigned to self`);
+  } catch (err) {
+    console.error('❌ Failed to assign call:', err.message);
+    return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
+  }
+
+  // Step 3: Upload the attachment (if present)
   if (req.file) {
     try {
       const form = new FormData();
@@ -266,7 +278,7 @@ async function handleInf(req, res, token) {
     console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
 
-  // Step 3: Submit the call
+  // Step 4: Submit the call
   try {
     await api(token).put(`call/${ref}/submit`);
     console.log(`✅ Call ${ref} submitted`);
