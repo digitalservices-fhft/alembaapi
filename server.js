@@ -196,7 +196,7 @@ async function handleCall(req, res, token) {
   res.json({ message: 'Call created.', callRef: ref });
 }
 
-async function handleStock(req, res, token) {
+async function handleInf(req, res, token) {
   const required = [
     'receivingGroup',
     'customString1',
@@ -243,7 +243,7 @@ async function handleStock(req, res, token) {
   res.json({ message: 'Info call created.', callRef: ref });
 }
 
-async function handleInf(req, res, token) {
+async function handleStock(req, res, token) {
   const { LinkedAsset, TransactionStatus } = req.query;
   const { Quantity } = req.body;
 
