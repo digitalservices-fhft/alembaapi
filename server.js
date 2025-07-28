@@ -238,6 +238,12 @@ async function handleInf(req, res, token) {
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
+// Step 1.5: Take Action on the call (assign to self)
+await api(token).put(`call/${ref}/action`, {
+  ActionType: 1, // 1 = Assign to self (or use appropriate action code)
+  User: 34419
+});
+
   // Step 2: Upload the attachment (if present)
   if (req.file) {
     try {
