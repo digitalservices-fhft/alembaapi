@@ -196,91 +196,90 @@ async function handleCall(req, res, token) {
   res.json({ message: 'Call created.', callRef: ref });
 }
 // CodeType=inf handler
-const handleInf = async (req, res) => {
+async function handleInf(req, res, token) {
+  const required = [
+    'receivingGroup',
+    'customString1',
+    'configurationItemId',
+    'type',
+    'impact',
+    'urgency'
+  ];
+
+  const missing = required.filter(p => !req.query[p]);
+  if (missing.length || !req.body.description) {
+    return res.status(400).json({
+      message: `Missing: ${missing.join(', ')} or description`
+    });
+  }
+
+  // Step 1: Create the call
+  const payload = {
+    Description: req.body.description,
+    DescriptionHtml: `<p>${req.body.description}</p>`,
+    IpkStatus: 1,
+    IpkStream: 0,
+    Impact: +req.query.impact,
+    Urgency: +req.query.urgency,
+    Type: +req.query.type,
+    ReceivingGroup: +req.query.receivingGroup,
+    CustomString1: req.query.customString1,
+    ConfigurationItemId: +req.query.configurationItemId,
+    User: 34419
+  };
+
+  let ref;
   try {
-    console.log('📥 INF request received:', req.query);
-    
-    const token = await getToken();
-    
-    // Extract parameters from query string
-    const { 
-      receivingGroup, 
-      customString1, 
-      configurationItemId, 
-      type, 
-      impact, 
-      urgency, 
-      codeType
-    } = req.query;
-    
-    // Extract description from request body
-    const { description } = req.body;
-    
-    // Step 1: Create the call
-    const callBody = {
-      Description: description,
-      ReceivingGroup: receivingGroup,
-      CustomString1: customString1,
-      ConfigurationItem: configurationItemId,
-      Type: type,
-      Impact: impact,
-      Urgency: urgency
-    };
-    
-    console.log('📤 Creating call with body:', callBody);
-    
-    const { data } = await api(token).post('call', callBody);
-    const { Ref: ref } = data;
-    
+    const response = await api(token).post('call', payload);
+    ref = response.data.Ref;
     console.log(`✅ Call created with ref: ${ref}`);
-    
-    // Step 2: Submit the call FIRST (this makes actions available)
-    await api(token).put(`call/${ref}/submit`);
-    console.log('✅ Call submitted');
-    
-    // Step 3: Handle file upload if present (after submit)
-    if (req.file) {
-      const attachmentFormData = new FormData();
-      attachmentFormData.append('file', req.file.buffer, {
+  } catch (err) {
+    console.error('❌ Call creation failed:', err.message);
+    return res.status(500).json({ message: 'Failed to create call', detail: err.message });
+  }
+
+  // Step 2: Take action on the call (assign to self)
+  try {
+    await api(token).put(`call/${ref}/action`, {
+      ActionType: 1, // Assign to self
+      User: 34419
+    });
+    console.log(`✅ Call ${ref} assigned to self`);
+  } catch (err) {
+    console.error('❌ Failed to assign call:', err.message);
+    return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
+  }
+
+  // Step 3: Upload the attachment (if present)
+  if (req.file) {
+    try {
+      const form = new FormData();
+      form.append('attachment', fs.createReadStream(req.file.path), {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
-      
-      await api(token).post(`call/${ref}/attachment`, attachmentFormData, {
-        headers: {
-          ...attachmentFormData.getHeaders()
+
+      await axios.post(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            Authorization: `Bearer ${token}`
+          },
+          maxBodyLength: Infinity
         }
-      });
-      
-      console.log('✅ File uploaded successfully');
+      );
+
+      fs.unlink(req.file.path, () => {});
+      console.log(`✅ Attachment uploaded for call ${ref}`);
+    } catch (uploadError) {
+      console.error('❌ Attachment upload failed:', uploadError.message);
+      return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
     }
-    
-    // Step 4: (Optional) Assign to self - NOW WORKS because call is submitted
-    try {
-      await api(token).post(`call/${ref}/actions/1`, {
-        User: 34419
-      });
-      console.log('✅ Call assigned to self');
-    } catch (assignError) {
-      console.log('ℹ️  Assignment skipped (may be handled by routing rules):', assignError.message);
-      // Don't fail the entire request if assignment fails - the call is still valid
-    }
-    
-    res.json({ 
-      success: true, 
-      message: `Success! Your ref is ${ref}`, 
-      ref: ref 
-    });
-    
-  } catch (error) {
-    console.error('❌ Error in handleInf:', error.message);
-    if (error.response) {
-      console.error('Response ', error.response.data);
-      console.error('Response status:', error.response.status);
-    }
-    res.status(500).json({ message: error.message });
+  } else {
+    console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
-};
 
 // codeType=stock handler
 async function handleInventoryAllocation(req, res, token) {
