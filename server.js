@@ -240,16 +240,16 @@ try {
 }
 
   // Step 2: Assign the call to self
-  try {
-    await api(token).put(`call/${ref}/action`, {
-      ActionType: 1,
-      User: 34419
-    });
-    console.log(`✅ Call ${ref} assigned to self`);
-  } catch (err) {
-    console.error('❌ Failed to assign call:', err.message);
-    return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
-  }
+  
+try {
+  await api(token).put(`incident/${ref}`, {
+    AssignedTo: 34419
+  });
+  console.log(`✅ Call ${ref} assigned to self`);
+} catch (err) {
+  console.error('❌ Failed to assign call:', err.message);
+  return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
+}
 
   // Step 3: Upload the attachment (if present)
 if (req.file) {
