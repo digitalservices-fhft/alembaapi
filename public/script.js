@@ -150,7 +150,7 @@ async function submitInf() {
   const formData = new FormData();
   formData.append("description", description);
   if (attachment) {
-    formData.append("File", attachment);
+    formData.append("file", attachment);
   }
 
   const url = `/make-call?${queryParams.toString()}`;
