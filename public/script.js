@@ -86,7 +86,7 @@ async function submitCall() {
   const receivingGroup = qs("receivingGroup");
   const customString1 = qs("customString1");
   const configurationItemId = qs("configurationItemId");
-  const description = el("description")?.value || "";
+  const description = qs("description") ?? "";
   const type = qs("type");
   const impact = qs("impact");
   const urgency = qs("urgency");
