@@ -119,52 +119,57 @@ async function submitCall() {
 
 // Submit inf
 async function submitInf() {
-  const token = await fetchToken();
+    const token = await fetchToken();
 
-  const description = el("descriptionInput")?.value;
-  if (!description) throw new Error("Description is required");
+    const description = el("descriptionInput")?.value?.trim();
+    if (!description) {
+        throw new Error("Description is required. Please enter a description before submitting.");
+    }
 
-  const attachmentInput = el("attachmentInput");
-  const attachment = attachmentInput?.files?.[0];
+    const attachmentInput = el("attachmentInput");
+    const attachment = attachmentInput?.files?.[0];
+    if (!attachment) {
+        throw new Error("Attachment is required. Please select a file to upload.");
+    }
 
-  const requiredParams = [
-    "receivingGroup",
-    "customString1",
-    "configurationItemId",
-    "type",
-    "impact",
-    "urgency"
-  ];
+    const requiredParams = [
+        "receivingGroup",
+        "customString1",
+        "configurationItemId",
+        "type",
+        "impact",
+        "urgency"
+    ];
 
-  const queryParams = new URLSearchParams();
-  for (const param of requiredParams) {
-    const value = qs(param);
-    if (!value) throw new Error(`Missing required parameter: ${param}`);
-    queryParams.append(param, value);
-  }
+    const queryParams = new URLSearchParams();
+    for (const param of requiredParams) {
+        const value = qs(param);
+        if (!value) {
+            throw new Error(`Missing required parameter: ${param}. Please ensure all required fields are provided.`);
+        }
+        queryParams.append(param, value);
+    }
 
-  queryParams.append("codeType", "inf");
+    queryParams.append("codeType", "inf");
 
-const formData = new FormData();
-formData.append("description", description); // Always include description
-if (attachment) {
-  formData.append("attachment", attachment); // Only include if present
-}
+    const formData = new FormData();
+    formData.append("description", description);
+    formData.append("attachment", attachment);
 
-  const url = `/make-call?${queryParams.toString()}`;
-  const out = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    body: formData
-  }).then(r => {
-    if (!r.ok) throw new Error(`API error: ${r.status}`);
-    return r.json();
-  });
+    const url = `/make-call?${queryParams.toString()}`;
+    const out = await fetch(url, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: formData
+    }).then(r => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`);
+        return r.json();
+    });
 
-  hideProgressBar();
-  showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
+    hideProgressBar();
+    showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
 }
 
 // Submit stock
