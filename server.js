@@ -139,7 +139,7 @@ app.get('/get-token', async (_req, res) => {
   }
 });
 
-app.post('/make-call', upload.single('File'), async (req, res) => {
+app.post('/make-call', upload.single('file'), async (req, res) => {
   const codeType = req.query.codeType || req.body.codeType;
   const valid = ['call', 'inf', 'stock'];
   if (!valid.includes(codeType)) {
@@ -239,37 +239,38 @@ async function handleInf(req, res, token) {
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
-  // Step 2: Upload the attachment (if present)
-  if (req.file) {
-    if (attachmentHref) {
-      try {
-        const form = new FormData();
-        form.append('File', fs.createReadStream(req.file.path), {
-          filename: req.file.originalname,
-          contentType: req.file.mimetype
-        });
-     
-        
-       const uploadUrl = attachmentHref.replace('api:v2/', '');
-       await api(token).post(uploadUrl, form, {
-       headers: {
-    ...form.getHeaders(),
-    Authorization: `Bearer ${token}`
-  },
-  maxBodyLength: Infinity
-});
+// Step 2: Upload the attachment (if present)
+if (req.file) {
+  if (attachmentHref) {
+    try {
+      const form = new FormData();
+      form.append('file', fs.createReadStream(req.file.path), {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
 
-        fs.unlink(req.file.path, () => {});
-        console.log(`✅ Attachment uploaded for call ${ref}`);
-      } catch (uploadError) {
-        console.error('❌ Attachment upload failed:', uploadError.response?.data || uploadError.message)
-      }
-    } else {
-      console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
+      // Convert metadata-style href to usable path
+      const uploadUrl = attachmentHref.replace('api:v2/', '');
+
+      await api(token).post(uploadUrl, form, {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${token}`
+        },
+        maxBodyLength: Infinity
+      });
+
+      fs.unlink(req.file.path, () => {});
+      console.log(`✅ Attachment uploaded for call ${ref}`);
+    } catch (uploadError) {
+      console.error('❌ Attachment upload failed:', uploadError.response?.data || uploadError.message);
     }
   } else {
-    console.log(`ℹ️ No attachment provided for call ${ref}`);
+    console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
   }
+} else {
+  console.log(`ℹ️ No attachment provided for call ${ref}`);
+}
 
   // Step 3: Submit the call
   try {
