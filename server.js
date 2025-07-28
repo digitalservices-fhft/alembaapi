@@ -226,6 +226,7 @@ async function handleInf(req, res, token) {
     ConfigurationItemId: +req.query.configurationItemId,
     User: 34419
   };
+
   let ref;
   try {
     const response = await api(token).post('call', payload);
@@ -264,6 +265,17 @@ async function handleInf(req, res, token) {
   } else {
     console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
+
+  // Step 3: Submit the call
+  try {
+    await api(token).put(`call/${ref}/submit`);
+    console.log(`✅ Call ${ref} submitted`);
+    res.json({ message: 'Info call created.', callRef: ref });
+  } catch (submitError) {
+    console.error('❌ Call submission failed:', submitError.message);
+    res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
+  }
+}
 
   // Step 3: Submit the call
   try {
