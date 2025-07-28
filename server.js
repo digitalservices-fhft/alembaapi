@@ -240,7 +240,7 @@ async function handleInf(req, res, token) {
 
   // Step 2: Take action on the call (assign to self)
   try {
-    await api(token).put(`call/${ref}/action`, {
+    await api(token).post(`call/${ref}/actions`, {
       ActionType: 1, // Assign to self
       User: 34419
     });
