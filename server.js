@@ -259,8 +259,7 @@ async function handleInf(req, res, token) {
         fs.unlink(req.file.path, () => {});
         console.log(`✅ Attachment uploaded for call ${ref}`);
       } catch (uploadError) {
-        console.error('❌ Attachment upload failed:', uploadError.message);
-        return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
+        console.error('❌ Attachment upload failed:', uploadError.response?.data || uploadError.message)
       }
     } else {
       console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
