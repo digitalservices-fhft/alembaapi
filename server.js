@@ -252,7 +252,8 @@ try {
   }
 
   // Step 3: Upload the attachment (if present)
-  if (req.file && attachmentHref) {
+if (req.file) {
+  if (attachmentHref) {
     try {
       const form = new FormData();
       form.append('attachment', fs.createReadStream(req.file.path), {
@@ -278,8 +279,11 @@ try {
       return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
     }
   } else {
-    console.log(`ℹ️ No attachment provided or endpoint missing for call ${ref}`);
+    console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
   }
+} else {
+  console.log(`ℹ️ No attachment provided for call ${ref}`);
+}
 
   // Step 4: Submit the call
   try {
