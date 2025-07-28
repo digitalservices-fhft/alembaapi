@@ -150,7 +150,7 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
     const token = await getFreshToken();
 if (codeType === 'call') return handleCall(req, res, token);
 if (codeType === 'inf') return handleInf(req, res, token);
-if (codeType === 'stock') return handleStock(req, res, token);
+if (codeType === 'stock') return handleInventoryAllocation(req, res, token);
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: e.message });
@@ -243,13 +243,13 @@ async function handleInf(req, res, token) {
   res.json({ message: 'Info call created.', callRef: ref });
 }
 
-async function handleStock(req, res, token) {
-  const { LinkedAsset, TransactionStatus } = req.query;
+
+async function handleInventoryAllocation(req, res, token) {
+  const { purchase } = req.query;
   const { Quantity } = req.body;
 
   const missing = [];
-  if (!LinkedAsset) missing.push('LinkedAsset');
-  if (!TransactionStatus) missing.push('TransactionStatus');
+  if (!purchase) missing.push('purchase');
   if (!Quantity) missing.push('Quantity');
 
   if (missing.length) {
@@ -258,9 +258,8 @@ async function handleStock(req, res, token) {
 
   const payload = {
     Person: 34419,
-    LinkedAsset: +LinkedAsset,
-    Quantity: +Quantity,
-    TransactionStatus: +TransactionStatus
+    TransactionStatus: +purchase,
+    Quantity: +Quantity
   };
 
   const ref = (await api(token).post('inventory-allocation', payload)).data.Ref;
