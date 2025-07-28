@@ -163,6 +163,7 @@ const api = (token) =>
     timeout: 30_000
   });
 
+ // Handle the call creation 
 async function handleCall(req, res, token) {
   const required = [
     'receivingGroup',
@@ -261,7 +262,7 @@ async function handleInf(req, res, token) {
       fs.unlink(req.file.path, () => {});
     } catch (uploadError) {
       console.error('Attachment upload failed:', uploadError.message);
-      return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
+      // Don't fail the whole request — just log and continue
     }
   }
 
@@ -275,6 +276,7 @@ async function handleInf(req, res, token) {
   }
 }
 
+//Inventory allocation handler
 async function handleInventoryAllocation(req, res, token) {
   const { purchase } = req.query;
   const { Quantity } = req.body;
