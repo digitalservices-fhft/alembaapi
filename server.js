@@ -277,16 +277,6 @@ async function handleInf(req, res, token) {
   }
 }
 
-  // Step 3: Submit the call
-  try {
-    await api(token).put(`call/${ref}/submit`);
-    console.log(`✅ Call ${ref} submitted`);
-    res.json({ message: 'Info call created.', callRef: ref });
-  } catch (submitError) {
-    console.error('❌ Call submission failed:', submitError.message);
-    res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
-  }
-}
 // codeType=stock handler
 async function handleInventoryAllocation(req, res, token) {
   const { purchase } = req.query;
