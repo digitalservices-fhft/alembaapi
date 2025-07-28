@@ -150,7 +150,7 @@ async function submitInf() {
   const formData = new FormData();
   formData.append("description", description);
   if (attachment) {
-    formData.append("attachment", attachment);
+    formData.append("File", attachment);
   }
 
   const url = `/make-call?${queryParams.toString()}`;
@@ -158,7 +158,6 @@ async function submitInf() {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`
-      // Do NOT set Content-Type manually — let the browser handle it
     },
     body: formData
   });

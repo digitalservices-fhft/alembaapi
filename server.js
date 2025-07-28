@@ -244,7 +244,7 @@ async function handleInf(req, res, token) {
     if (attachmentHref) {
       try {
         const form = new FormData();
-        form.append('attachment', fs.createReadStream(req.file.path), {
+        form.append('File', fs.createReadStream(req.file.path), {
           filename: req.file.originalname,
           contentType: req.file.mimetype
         });
