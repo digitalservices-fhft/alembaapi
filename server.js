@@ -195,6 +195,7 @@ async function handleCall(req, res, token) {
   res.json({ message: 'Call created.', callRef: ref });
 }
 
+
 async function handleInf(req, res, token) {
   const required = [
     'receivingGroup',
@@ -204,10 +205,15 @@ async function handleInf(req, res, token) {
     'impact',
     'urgency'
   ];
-  const missing = required.filter((p) => !req.query[p]);
+
+  const missing = required.filter(p => !req.query[p]);
   if (missing.length || !req.body.description) {
-    return res.status(400).json({ message: `Missing: ${missing.join(', ')} or description` });
+    return res.status(400).json({
+      message: `Missing: ${missing.join(', ')} or description`
+    });
   }
+
+  // Step 1: Create the call
   const payload = {
     Description: req.body.description,
     DescriptionHtml: `<p>${req.body.description}</p>`,
@@ -221,27 +227,53 @@ async function handleInf(req, res, token) {
     ConfigurationItemId: +req.query.configurationItemId,
     User: 34419
   };
-  const ref = (await api(token).post('call', payload)).data.Ref;
-  if (req.file) {
-    const form = new FormData();
-    form.append('attachment', fs.createReadStream(req.file.path), {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype
-    });
-    await axios.post(
-      `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
-      form,
-      {
-        headers: { ...form.getHeaders(), Authorization: `Bearer ${token}` },
-        maxBodyLength: Infinity
-      }
-    );
-    fs.unlink(req.file.path, () => {});
-  }
-  await api(token).put(`call/${ref}/submit`);
-  res.json({ message: 'Info call created.', callRef: ref });
-}
 
+  let ref;
+  try {
+    const response = await api(token).post('call', payload);
+    ref = response.data.Ref;
+  } catch (err) {
+    console.error('Call creation failed:', err.message);
+    return res.status(500).json({ message: 'Failed to create call', detail: err.message });
+  }
+
+  // Step 2: Upload the attachment (if present)
+  if (req.file) {
+    try {
+      const form = new FormData();
+      form.append('attachment', fs.createReadStream(req.file.path), {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
+
+      await axios.post(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            Authorization: `Bearer ${token}`
+          },
+          maxBodyLength: Infinity
+        }
+      );
+
+      fs.unlink(req.file.path, () => {});
+    } catch (uploadError) {
+      console.error('Attachment upload failed:', uploadError.message);
+      return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
+    }
+  }
+
+  // Step 3: Submit the call
+  try {
+    await api(token).put(`call/${ref}/submit`);
+    res.json({ message: 'Info call created.', callRef: ref });
+  } catch (submitError) {
+    console.error('Call submission failed:', submitError.message);
+    res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
+  }
+}
 
 async function handleInventoryAllocation(req, res, token) {
   const { purchase } = req.query;
