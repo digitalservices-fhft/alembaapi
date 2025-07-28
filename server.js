@@ -89,7 +89,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static('public', { extensions: ['html'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -266,5 +265,5 @@ async function handleInventoryAllocation(req, res, token) {
   await api(token).put(`inventory-allocation/${ref}/submit`);
   res.json({ message: 'Inventory allocation created.', allocationRef: ref });
 }
-
+app.use(express.static('public', { extensions: ['html'] }));
 app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
