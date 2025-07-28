@@ -248,17 +248,14 @@ async function handleInf(req, res, token) {
           filename: req.file.originalname,
           contentType: req.file.mimetype
         });
-        await axios.post(
-          `https://fhnhs.alembacloud.com/production/alemba.api/${attachmentHref}`,
-          form,
-          {
-            headers: {
-              ...form.getHeaders(),
-              Authorization: `Bearer ${token}`
-            },
-            maxBodyLength: Infinity
-          }
-        );
+     
+        await api(token).post(attachmentHref, form, {
+         headers: {
+        ...form.getHeaders()
+      },
+        maxBodyLength: Infinity
+      });
+
         fs.unlink(req.file.path, () => {});
         console.log(`✅ Attachment uploaded for call ${ref}`);
       } catch (uploadError) {
