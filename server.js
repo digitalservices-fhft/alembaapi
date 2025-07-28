@@ -238,45 +238,53 @@ async function handleInf(req, res, token) {
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
-// Step 1.5: Take Action on the call (assign to self)
-await api(token).put(`call/${ref}/action`, {
-  ActionType: 1, // 1 = Assign to self (or use appropriate action code)
-  User: 34419
-});
+  // Step 2: Take action on the call (assign to self)
+  try {
+    await api(token).put(`call/${ref}/action`, {
+      ActionType: 1, // Assign to self
+      User: 34419
+    });
+    console.log(`✅ Call ${ref} assigned to self`);
+  } catch (err) {
+    console.error('❌ Failed to assign call:', err.message);
+    return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
+  }
 
-  // Step 2: Upload the attachment (if present)
+  // Step 3: Upload the attachment (if present)
   if (req.file) {
     try {
-      console.log(`📎 Uploading file: ${req.file.originalname} (${req.file.path})`);
-
       const form = new FormData();
       form.append('attachment', fs.createReadStream(req.file.path), {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
 
-      const uploadUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`;
-      const uploadResponse = await axios.post(uploadUrl, form, {
-        headers: {
-          ...form.getHeaders(),
-          Authorization: `Bearer ${token}`
-        },
-        maxBodyLength: Infinity
-      });
+      await axios.post(
+        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            Authorization: `Bearer ${token}`
+          },
+          maxBodyLength: Infinity
+        }
+      );
 
-      console.log(`✅ Attachment uploaded: ${uploadResponse.status}`);
       fs.unlink(req.file.path, () => {});
+      console.log(`✅ Attachment uploaded for call ${ref}`);
     } catch (uploadError) {
       console.error('❌ Attachment upload failed:', uploadError.message);
-      // Don't fail the whole request — just log and continue
+      return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
     }
   } else {
-    console.log('ℹ️ No attachment provided.');
+    console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
 
-  // Step 3: Submit the call
+  // Step 4: Submit the call
   try {
     await api(token).put(`call/${ref}/submit`);
+    console.log(`✅ Call ${ref} submitted`);
     res.json({ message: 'Info call created.', callRef: ref });
   } catch (submitError) {
     console.error('❌ Call submission failed:', submitError.message);
