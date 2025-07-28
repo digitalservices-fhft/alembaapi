@@ -227,65 +227,52 @@ async function handleInf(req, res, token) {
     User: 34419
   };
 
-let ref, attachmentHref;
-try {
-  const response = await api(token).post('call', payload);
-  ref = response.data.Ref;
-  attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
-  console.log(`✅ Call created with ref: ${ref}`);
-  console.log("📎 Attachment upload endpoint:", attachmentHref);
-} catch (err) {
-  console.error('❌ Call creation failed:', err.message);
-  return res.status(500).json({ message: 'Failed to create call', detail: err.message });
-}
+  let ref, attachmentHref;
+  try {
+    const response = await api(token).post('call', payload);
+    ref = response.data.Ref;
+    attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
+    console.log(`✅ Call created with ref: ${ref}`);
+    console.log("📎 Attachment upload endpoint:", attachmentHref);
+  } catch (err) {
+    console.error('❌ Call creation failed:', err.message);
+    return res.status(500).json({ message: 'Failed to create call', detail: err.message });
+  }
 
-  // Step 2: Assign the call to self
-  
-try {
-  await api(token).put(`incident/${ref}`, {
-    AssignedTo: 34419
-  });
-  console.log(`✅ Call ${ref} assigned to self`);
-} catch (err) {
-  console.error('❌ Failed to assign call:', err.message);
-  return res.status(500).json({ message: 'Failed to assign call', detail: err.message });
-}
-
-  // Step 3: Upload the attachment (if present)
-if (req.file) {
-  if (attachmentHref) {
-    try {
-      const form = new FormData();
-      form.append('attachment', fs.createReadStream(req.file.path), {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype
-      });
-
-      await axios.post(
-        `https://fhnhs.alembacloud.com/production/alemba.api/${attachmentHref}`,
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-            Authorization: `Bearer ${token}`
-          },
-          maxBodyLength: Infinity
-        }
-      );
-      fs.unlink(req.file.path, () => {});
-      console.log(`✅ Attachment uploaded for call ${ref}`);
-    } catch (uploadError) {
-      console.error('❌ Attachment upload failed:', uploadError.message);
-      return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
+  // Step 2: Upload the attachment (if present)
+  if (req.file) {
+    if (attachmentHref) {
+      try {
+        const form = new FormData();
+        form.append('attachment', fs.createReadStream(req.file.path), {
+          filename: req.file.originalname,
+          contentType: req.file.mimetype
+        });
+        await axios.post(
+          `https://fhnhs.alembacloud.com/production/alemba.api/${attachmentHref}`,
+          form,
+          {
+            headers: {
+              ...form.getHeaders(),
+              Authorization: `Bearer ${token}`
+            },
+            maxBodyLength: Infinity
+          }
+        );
+        fs.unlink(req.file.path, () => {});
+        console.log(`✅ Attachment uploaded for call ${ref}`);
+      } catch (uploadError) {
+        console.error('❌ Attachment upload failed:', uploadError.message);
+        return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
+      }
+    } else {
+      console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
     }
   } else {
-    console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
+    console.log(`ℹ️ No attachment provided for call ${ref}`);
   }
-} else {
-  console.log(`ℹ️ No attachment provided for call ${ref}`);
-}
 
-  // Step 4: Submit the call
+  // Step 3: Submit the call
   try {
     await api(token).put(`call/${ref}/submit`);
     console.log(`✅ Call ${ref} submitted`);
