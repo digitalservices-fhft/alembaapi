@@ -249,12 +249,15 @@ async function handleInf(req, res, token) {
           contentType: req.file.mimetype
         });
      
-        await api(token).post(attachmentHref, form, {
-         headers: {
-        ...form.getHeaders()
-      },
-        maxBodyLength: Infinity
-      });
+        
+       const uploadUrl = attachmentHref.replace('api:v2/', '');
+       await api(token).post(uploadUrl, form, {
+       headers: {
+    ...form.getHeaders(),
+    Authorization: `Bearer ${token}`
+  },
+  maxBodyLength: Infinity
+});
 
         fs.unlink(req.file.path, () => {});
         console.log(`✅ Attachment uploaded for call ${ref}`);
