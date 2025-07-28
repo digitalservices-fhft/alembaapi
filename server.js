@@ -257,8 +257,7 @@ const handleInf = async (req, res) => {
     
     // Step 4: (Optional) Assign to self - NOW WORKS because call is submitted
     try {
-      await api(token).post(`call/${ref}/actions`, {
-        ActionType: 1,           // Assign to self
+      await api(token).post(`call/${ref}/actions/1`, {
         User: 34419
       });
       console.log('✅ Call assigned to self');
