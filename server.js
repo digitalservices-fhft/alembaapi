@@ -227,17 +227,18 @@ async function handleInf(req, res, token) {
     User: 34419
   };
 
-  let ref;
+  let ref, attachmentHref;
   try {
     const response = await api(token).post('call', payload);
     ref = response.data.Ref;
+    attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
     console.log(`✅ Call created with ref: ${ref}`);
   } catch (err) {
     console.error('❌ Call creation failed:', err.message);
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
-  // Step 2: Assign the call to self (lock it)
+  // Step 2: Assign the call to self
   try {
     await api(token).put(`call/${ref}/action`, {
       ActionType: 1,
@@ -250,15 +251,16 @@ async function handleInf(req, res, token) {
   }
 
   // Step 3: Upload the attachment (if present)
-  if (req.file) {
+  if (req.file && attachmentHref) {
     try {
       const form = new FormData();
       form.append('attachment', fs.createReadStream(req.file.path), {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
+
       await axios.post(
-        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
+        `https://fhnhs.alembacloud.com/production/alemba.api/${attachmentHref}`,
         form,
         {
           headers: {
@@ -275,7 +277,7 @@ async function handleInf(req, res, token) {
       return res.status(500).json({ message: 'Attachment upload failed', detail: uploadError.message });
     }
   } else {
-    console.log(`ℹ️ No attachment provided for call ${ref}`);
+    console.log(`ℹ️ No attachment provided or endpoint missing for call ${ref}`);
   }
 
   // Step 4: Submit the call
