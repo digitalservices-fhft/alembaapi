@@ -148,10 +148,9 @@ app.post('/make-call', upload.single('attachment'), async (req, res) => {
   }
   try {
     const token = await getFreshToken();
-    if (codeType === 'call') return handleCall(req, res, token);
-    if (codeType === 'inf') return handleInf(req, res, token);
-    if (codeType === 'stock') return handleStock(req, res, token);
-    return handleStock(req, res, token);
+if (codeType === 'call') return handleCall(req, res, token);
+if (codeType === 'inf') return handleInf(req, res, token);
+if (codeType === 'stock') return handleStock(req, res, token);
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: e.message });

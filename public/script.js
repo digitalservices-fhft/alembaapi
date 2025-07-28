@@ -145,11 +145,11 @@ async function submitInf() {
 
   queryParams.append("codeType", "inf");
 
-  const formData = new FormData();
-  formData.append("description", description);
-  if (attachment) {
-    formData.append("attachment", attachment);
-  }
+const formData = new FormData();
+formData.append("description", description); // Always include description
+if (attachment) {
+  formData.append("attachment", attachment); // Only include if present
+}
 
   const url = `/make-call?${queryParams.toString()}`;
   const out = await fetch(url, {
