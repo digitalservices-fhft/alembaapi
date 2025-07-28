@@ -195,20 +195,21 @@ async function handleCall(req, res, token) {
   await api(token).put(`call/${ref}/submit`);
   res.json({ message: 'Call created.', callRef: ref });
 }
-// CodeType=inf handler
+// CodeType=inf handler with proper lock/unlock workflow
 async function handleInf(req, res, token) {
   const required = [
     'receivingGroup',
-    'customString1',
+    'customString1', 
     'configurationItemId',
     'type',
     'impact',
     'urgency'
   ];
+  
   const missing = required.filter(p => !req.query[p]);
   if (missing.length || !req.body.description) {
-    return res.status(400).json({
-      message: `Missing: ${missing.join(', ')} or description`
+    return res.status(400).json({ 
+      message: `Missing: ${missing.join(', ')} or description` 
     });
   }
 
@@ -228,58 +229,108 @@ async function handleInf(req, res, token) {
   };
 
   let ref, attachmentHref;
+  
   try {
     const response = await api(token).post('call', payload);
     ref = response.data.Ref;
     attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
     console.log(`✅ Call created with ref: ${ref}`);
-    console.log("📎 Attachment upload endpoint:", attachmentHref);
   } catch (err) {
     console.error('❌ Call creation failed:', err.message);
-    return res.status(500).json({ message: 'Failed to create call', detail: err.message });
+    return res.status(500).json({ 
+      message: 'Failed to create call', 
+      detail: err.message 
+    });
   }
 
-// Step 2: Upload the attachment (if present)
-if (req.file) {
-  if (attachmentHref) {
+  // Step 2: Handle attachment upload with proper lock/unlock workflow
+  if (req.file && attachmentHref) {
+    let isLocked = false;
+    
     try {
-      const form = new FormData();
-      form.append('file', fs.createReadStream(req.file.path), {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype
-      });
+      // Lock the call before attachment operations
+      isLocked = await lockCall(token, ref);
+      
+      if (!isLocked) {
+        console.warn(`⚠️ Could not lock call ${ref} for attachment upload`);
+      } else {
+        // Upload attachment to locked call
+        const form = new FormData();
+        form.append('file', fs.createReadStream(req.file.path), {
+          filename: req.file.originalname,
+          contentType: req.file.mimetype
+        });
 
-      // Convert metadata-style href to usable path
-      const uploadUrl = attachmentHref.replace('api:v2/', '');
+        // Use the href directly without double path processing
+        const uploadUrl = attachmentHref.replace('api:v2/', '');
+        
+        await api(token).post(uploadUrl, form, {
+          headers: {
+            ...form.getHeaders(),
+            Authorization: `Bearer ${token}`
+          },
+          maxBodyLength: Infinity
+        });
 
-      await api(token).post(uploadUrl, form, {
-        headers: {
-          ...form.getHeaders(),
-          Authorization: `Bearer ${token}`
-        },
-        maxBodyLength: Infinity
-      });
-
-      fs.unlink(req.file.path, () => {});
-      console.log(`✅ Attachment uploaded for call ${ref}`);
-    } catch (uploadError) {
-      console.error('❌ Attachment upload failed:', uploadError.response?.data || uploadError.message);
+        console.log(`✅ Attachment uploaded for call ${ref}`);
+      }
+      
+    } catch (attachmentError) {
+      console.error('❌ Attachment upload failed:', attachmentError.response?.data || attachmentError.message);
+    } finally {
+      // Always attempt to unlock if we locked it
+      if (isLocked) {
+        await unlockCall(token, ref);
+      }
+      
+      // Clean up uploaded file
+      if (req.file?.path) {
+        fs.unlink(req.file.path, () => {});
+      }
     }
-  } else {
-    console.warn(`⚠️ No attachment endpoint returned for call ${ref}`);
   }
-} else {
-  console.log(`ℹ️ No attachment provided for call ${ref}`);
-}
 
-  // Step 3: Submit the call
+  // Step 3: Submit the call (this automatically unlocks if still locked)
   try {
     await api(token).put(`call/${ref}/submit`);
     console.log(`✅ Call ${ref} submitted`);
-    res.json({ message: 'Info call created.', callRef: ref });
+    res.json({ 
+      message: 'Info call created and submitted successfully', 
+      callRef: ref 
+    });
   } catch (submitError) {
     console.error('❌ Call submission failed:', submitError.message);
-    res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
+    res.status(500).json({ 
+      message: 'Call created but submission failed', 
+      callRef: ref,
+      detail: submitError.message 
+    });
+  }
+}
+
+// Helper functions
+async function lockCall(token, callRef) {
+  try {
+    await api(token).put(`call/${callRef}/lock`);
+    console.log(`✅ Call ${callRef} locked successfully`);
+    return true;
+  } catch (lockError) {
+    if (lockError.response?.data?.Message?.includes('locked by')) {
+      console.error(`❌ Call ${callRef} is locked by another user:`, lockError.response.data.Message);
+    } else {
+      console.error(`❌ Failed to lock call ${callRef}:`, lockError.response?.data || lockError.message);
+    }
+    return false;
+  }
+}
+
+async function unlockCall(token, callRef) {
+  try {
+    await api(token).put(`call/${callRef}/unlock`);
+    console.log(`✅ Call ${callRef} unlocked successfully`);
+  } catch (unlockError) {
+    console.error(`⚠️ Failed to unlock call ${callRef}:`, unlockError.response?.data || unlockError.message);
+    // Don't throw - call will auto-unlock when session expires
   }
 }
 
