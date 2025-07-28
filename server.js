@@ -163,7 +163,7 @@ const api = (token) =>
     timeout: 30_000
   });
 
- // Handle the call creation 
+ // codeType=call handler 
 async function handleCall(req, res, token) {
   const required = [
     'receivingGroup',
@@ -195,8 +195,7 @@ async function handleCall(req, res, token) {
   await api(token).put(`call/${ref}/submit`);
   res.json({ message: 'Call created.', callRef: ref });
 }
-
-
+// CodeType=inf handler
 async function handleInf(req, res, token) {
   const required = [
     'receivingGroup',
@@ -233,37 +232,40 @@ async function handleInf(req, res, token) {
   try {
     const response = await api(token).post('call', payload);
     ref = response.data.Ref;
+    console.log(`✅ Call created with ref: ${ref}`);
   } catch (err) {
-    console.error('Call creation failed:', err.message);
+    console.error('❌ Call creation failed:', err.message);
     return res.status(500).json({ message: 'Failed to create call', detail: err.message });
   }
 
   // Step 2: Upload the attachment (if present)
   if (req.file) {
     try {
+      console.log(`📎 Uploading file: ${req.file.originalname} (${req.file.path})`);
+
       const form = new FormData();
       form.append('attachment', fs.createReadStream(req.file.path), {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
 
-      await axios.post(
-        `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`,
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-            Authorization: `Bearer ${token}`
-          },
-          maxBodyLength: Infinity
-        }
-      );
+      const uploadUrl = `https://fhnhs.alembacloud.com/production/alemba.api/api/v2/call/${ref}/attachments`;
+      const uploadResponse = await axios.post(uploadUrl, form, {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${token}`
+        },
+        maxBodyLength: Infinity
+      });
 
+      console.log(`✅ Attachment uploaded: ${uploadResponse.status}`);
       fs.unlink(req.file.path, () => {});
     } catch (uploadError) {
-      console.error('Attachment upload failed:', uploadError.message);
+      console.error('❌ Attachment upload failed:', uploadError.message);
       // Don't fail the whole request — just log and continue
     }
+  } else {
+    console.log('ℹ️ No attachment provided.');
   }
 
   // Step 3: Submit the call
@@ -271,12 +273,12 @@ async function handleInf(req, res, token) {
     await api(token).put(`call/${ref}/submit`);
     res.json({ message: 'Info call created.', callRef: ref });
   } catch (submitError) {
-    console.error('Call submission failed:', submitError.message);
+    console.error('❌ Call submission failed:', submitError.message);
     res.status(500).json({ message: 'Call submission failed', detail: submitError.message });
   }
 }
 
-//Inventory allocation handler
+// codeType=stock handler
 async function handleInventoryAllocation(req, res, token) {
   const { purchase } = req.query;
   const { Quantity } = req.body;
