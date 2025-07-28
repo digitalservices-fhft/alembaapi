@@ -227,17 +227,17 @@ async function handleInf(req, res, token) {
     User: 34419
   };
 
-  let ref, attachmentHref;
-  try {
-    const response = await api(token).post('call', payload);
-    ref = response.data.Ref;
-    attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
-    console.log(`✅ Call created with ref: ${ref}`);
-    console.log("📎 Attachment upload endpoint:", attachmentHref);
-  } catch (err) {
-    console.error('❌ Call creation failed:', err.message);
-    return res.status(500).json({ message: 'Failed to create call', detail: err.message });
-  }
+let ref, attachmentHref;
+try {
+  const response = await api(token).post('call', payload);
+  ref = response.data.Ref;
+  attachmentHref = response.data._actions?.AttachmentCreate?.[0]?.href;
+  console.log(`✅ Call created with ref: ${ref}`);
+  console.log("📎 Attachment upload endpoint:", attachmentHref);
+} catch (err) {
+  console.error('❌ Call creation failed:', err.message);
+  return res.status(500).json({ message: 'Failed to create call', detail: err.message });
+}
 
   // Step 2: Assign the call to self
   try {
