@@ -22,6 +22,7 @@
   --color-red-500: rgba(192, 21, 47, 1);
   --color-orange-400: rgba(230, 129, 97, 1);
   --color-orange-500: rgba(168, 75, 47, 1);
+  --color-button: rgba(0, 48, 135, 1);
 
   /* RGB versions for opacity control */
   --color-brown-600-rgb: 94, 82, 64;
@@ -414,16 +415,16 @@ pre code {
 }
 
 .btn--primary {
-  background: var(--color-primary);
+  background: var(--color-button);
   color: var(--color-btn-primary-text);
 }
 
 .btn--primary:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-button);
 }
 
 .btn--primary:active {
-  background: var(--color-primary-active);
+  background: var(--color-button);
 }
 
 .btn--secondary {
@@ -1070,6 +1071,7 @@ pre#responseOutput {
   
   h1, h1.mb-4 {
     font-size: var(--font-size-2xl);
+    color: #003087;
   }
 }
 
