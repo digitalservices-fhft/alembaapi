@@ -304,7 +304,6 @@ html {
   font-family: var(--font-family-base);
   line-height: var(--line-height-normal);
   color: var(--color-text);
-  background-color: var(--color-background);
   -webkit-font-smoothing: antialiased;
   box-sizing: border-box;
 }
@@ -749,7 +748,6 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family-base);
-  background: var(--color-background);
   color: var(--color-text);
   line-height: var(--line-height-normal);
 }
@@ -996,7 +994,6 @@ pre#responseOutput {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-base);
-  box-shadow: var(--shadow-sm);
 }
 
 #image-container {
