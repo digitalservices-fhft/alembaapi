@@ -821,7 +821,7 @@ textarea {
 
 /* Main action button */
 .btn {
-  background-color: var(--color-primary);
+  background-color: var(--color-button);
   color: var(--color-btn-primary-text);
   width: 100%;
   min-height: 48px;
@@ -839,11 +839,11 @@ textarea {
   justify-content: center;
 }
 .btn:hover, .btn:focus {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-button);
 }
 
 .btn:active {
-  background-color: var(--color-primary-active);
+  background-color: var(--color-button);
 }
 
 .btn:focus-visible {
