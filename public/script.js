@@ -113,8 +113,10 @@ async function submitCall() {
     headers: { Authorization: `Bearer ${token}` }
   });
 
-  hideProgressBar();
-  showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
+hideProgressBar();
+el("callApiBtn").classList.add("hidden");
+showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
+
 }
 
 // Submit inf
@@ -167,8 +169,10 @@ async function submitInf() {
   }
 
   const out = await response.json();
-  hideProgressBar();
-  showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
+
+hideProgressBar();
+el("callApiBtn").classList.add("hidden");
+showResponse(`🎉 Success! Your ref is: <strong>${out.callRef}</strong>`, "success");
 }
 
 // Submit stock
@@ -189,8 +193,10 @@ async function submitStock() {
     body: JSON.stringify({ Quantity: +quantity })
   });
 
-  hideProgressBar();
-  showResponse(`🎉 Success! Your ref is: <strong>${out.allocationRef}</strong>`, "success");
+hideProgressBar();
+el("callApiBtn").classList.add("hidden");
+showResponse(`🎉 Success! Your ref is: <strong>${out.allocationRef}</strong>`, "success");
+
 }
 
 // UI feedback
